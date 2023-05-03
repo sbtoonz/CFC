@@ -1,19 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Reflection;
 using System.Reflection.Emit;
 using HarmonyLib;
 using UnityEngine;
-using Object = UnityEngine.Object;
 
 namespace CFC
 {
-    public class Patches
+    public static class Patches
     {
         [HarmonyPatch(typeof(Player), nameof(Player.HaveRequirements), typeof(Piece), typeof(Player.RequirementMode))]
         public static class RequirementsTranspiler
         {
-            private static MethodInfo method_ComputeItemQuantity = AccessTools.Method(typeof(Requirements2Transpiler), nameof(Requirements2Transpiler.CheckAllInventoryCount));
+            private static readonly MethodInfo ComputeItemQuantity = AccessTools.Method(typeof(Requirements2Transpiler), nameof(Requirements2Transpiler.CheckChestList));
             [HarmonyTranspiler]
             public static IEnumerable<CodeInstruction> HaveReqs(IEnumerable<CodeInstruction> instructions)
             {
@@ -28,7 +26,7 @@ namespace CFC
                     .Advance(8)
                     .InsertAndAdvance(new CodeInstruction(OpCodes.Ldloc_2))
                     .InsertAndAdvance(new CodeInstruction(OpCodes.Ldarg_0))
-                    .InsertAndAdvance(new CodeInstruction(OpCodes.Call, method_ComputeItemQuantity))
+                    .InsertAndAdvance(new CodeInstruction(OpCodes.Call, ComputeItemQuantity))
                     .InstructionEnumeration();
             }
         }
@@ -36,7 +34,7 @@ namespace CFC
         [HarmonyPatch(typeof(Player), nameof(Player.HaveRequirementItems), typeof(Recipe), typeof(bool), typeof(int))]
         public static class Requirements2Transpiler
         {
-            private static MethodInfo method_ComputeItemQuantity = AccessTools.Method(typeof(Requirements2Transpiler), nameof(Requirements2Transpiler.CheckAllInventoryCount));
+            private static readonly MethodInfo ComputeItemQuantity = AccessTools.Method(typeof(Requirements2Transpiler), nameof(Requirements2Transpiler.CheckChestList));
 
             [HarmonyTranspiler]
             public static IEnumerable<CodeInstruction> HaveReqs(IEnumerable<CodeInstruction> instructions)
@@ -52,15 +50,15 @@ namespace CFC
                     .Advance(9) 
                     .InsertAndAdvance(new CodeInstruction(OpCodes.Ldloc_2))
                     .InsertAndAdvance(new CodeInstruction(OpCodes.Ldarg_0))
-                    .InsertAndAdvance(new CodeInstruction(OpCodes.Call, method_ComputeItemQuantity))
+                    .InsertAndAdvance(new CodeInstruction(OpCodes.Call, ComputeItemQuantity))
                     .InstructionEnumeration();
             }
 
-            internal static int  CheckAllInventoryCount(int fromInventory, Piece.Requirement item, Player player)
+            internal static int  CheckChestList(int fromInventory, Piece.Requirement item, Player player)
             {
                 int i = 0;
-                ContainerPatch._continers.RemoveAll(item => item == null);
-                foreach (var c in ContainerPatch._continers)
+                ContainerPatch.Continers.RemoveAll(container => container == null);
+                foreach (var c in ContainerPatch.Continers)
                 {
                     if(c == null) continue;
                     if(Vector3.Distance(player.transform.position, c.transform.position) > CFCMod.ChestDistance?.Value)continue;
@@ -79,11 +77,11 @@ namespace CFC
         [HarmonyPatch(typeof(Container), nameof(Container.Awake))]
         public static class ContainerPatch
         {
-            internal static List<Container> _continers = new List<Container>();
+            internal static readonly List<Container> Continers = new List<Container>();
 
             public static void Postfix(Container __instance)
             {
-                if(!_continers.Contains(__instance))_continers.Add(__instance);
+                if(!Continers.Contains(__instance))Continers.Add(__instance);
             }
         }
 
@@ -92,7 +90,7 @@ namespace CFC
         {
             public static void Prefix(Container __instance)
             {
-                if (ContainerPatch._continers.Contains(__instance)) ContainerPatch._continers.Remove(__instance);
+                if (ContainerPatch.Continers.Contains(__instance)) ContainerPatch.Continers.Remove(__instance);
             }
         }
     }

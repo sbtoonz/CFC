@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModFrame", "ModFrame\ModFrame.csproj", "{F9B815D6-6EF4-44DB-9A0F-436849B24670}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CFC", "CFC\CFC.csproj", "{F9B815D6-6EF4-44DB-9A0F-436849B24670}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServerSync", "ServerSync\ServerSync.csproj", "{E16C3332-50B4-4DA6-9E8A-A590C4E5CD49}"
 EndProject

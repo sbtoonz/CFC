@@ -38,7 +38,7 @@ namespace CFC
                     .Advance(9)
                     .InsertAndAdvance(new CodeInstruction(OpCodes.Ldarg_1))
                     .InsertAndAdvance(new CodeInstruction(OpCodes.Ldarg_2))
-                    .InsertAndAdvance(Transpilers.EmitDelegate<Func<int, Piece.Requirement, Player, int>>(SetupRequirementCheck))
+                    .InsertAndAdvance(Transpilers.EmitDelegate<Func<int, Piece.Requirement, Player, int>>(CheckChestList))
                     .InstructionEnumeration();
             }
 
@@ -96,26 +96,7 @@ namespace CFC
             i += fromInventory;
             return i;
         }
-        
-        private static int  SetupRequirementCheck(int fromPlayerInv, Piece.Requirement item, Player player)
-        {
-            int i = 0;
-            ContainerAwakePatch.Continers.RemoveWhere(container => container == null);
-            foreach (var c in ContainerAwakePatch.Continers)
-            {
-                if(c == null) continue;
-                if(Vector3.Distance(player.transform.position, c.transform.position) > CFCMod.ChestDistance?.Value)continue;
-                if (c.m_inventory.HaveItem(item.m_resItem.m_itemData.m_shared.m_name))
-                {
-                    i += c.m_inventory.CountItems(item.m_resItem.m_itemData.m_shared.m_name);
-                }
-            }
 
-            i += fromPlayerInv;
-            return i;
-        }
-        
-        
         [HarmonyPatch(typeof(Container), nameof(Container.Awake))]
         public static class ContainerAwakePatch
         {

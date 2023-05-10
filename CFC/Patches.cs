@@ -11,6 +11,7 @@ namespace CFC
     public static class Patches
     {
         [HarmonyPatch(typeof(InventoryGui), nameof(InventoryGui.SetupRequirement))]
+        [HarmonyPriority(0)]
         public static class SetupReqTranspiler
         {
             [HarmonyTranspiler]
@@ -33,6 +34,7 @@ namespace CFC
         }
         
         [HarmonyPatch(typeof(Player), nameof(Player.HaveRequirementItems), typeof(Recipe), typeof(bool), typeof(int))]
+        [HarmonyPriority(0)]
         public static class RequirementItemsTranspiler
         {
             [HarmonyTranspiler]
@@ -55,6 +57,7 @@ namespace CFC
         }
 
         [HarmonyPatch(typeof(Player), nameof(Player.HaveRequirements), typeof(Piece), typeof(Player.RequirementMode))]
+        [HarmonyPriority(0)]
         public static class HaveReqsTranspiler
         {
             [HarmonyTranspiler]
@@ -77,6 +80,7 @@ namespace CFC
         }
         
         [HarmonyPatch(typeof(Player), nameof(Player.ConsumeResources))]
+        [HarmonyPriority(0)]
         public static class ConsumeResourcesTranspiler
         {
             [HarmonyTranspiler]
@@ -107,6 +111,7 @@ namespace CFC
 
             foreach (var c in ContainerAwakePatch.Continers)
             {
+                if(Vector3.Distance(c.transform.position, player.transform.position) > CFCMod.ChestDistance!.Value)continue;
                 inventoryAmount = c.m_inventory.CountItems(item.m_resItem.m_itemData.m_shared.m_name);
                 c.m_inventory.RemoveItem(item.m_resItem.m_itemData.m_shared.m_name, amount, itemQuality);
                 amount -= inventoryAmount;
@@ -137,6 +142,7 @@ namespace CFC
         }
 
         [HarmonyPatch(typeof(Container), nameof(Container.Awake))]
+        [HarmonyPriority(0)]
         public static class ContainerAwakePatch
         {
             internal static readonly List<Container> Continers = new List<Container>();
@@ -152,6 +158,7 @@ namespace CFC
         }
 
         [HarmonyPatch(typeof(Container), nameof(Container.OnDestroyed))]
+        [HarmonyPriority(0)]
         public static class ContainerDestroyPatch
         {
             public static void Prefix(Container __instance)

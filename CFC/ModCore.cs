@@ -9,8 +9,8 @@ namespace CFC
     [BepInPlugin(ModGUID, ModName, ModVersion)]
     public class CFCMod : BaseUnityPlugin
     {
-        private const string ModName = "CFCMod";
-        private const string ModVersion = "1.0";
+        internal const string ModName = "CFCMod";
+        internal const string ModVersion = "1.0.2";
         private const string ModGUID = "CFCMod";
         private static Harmony harmony = null!;
 

@@ -147,7 +147,6 @@ namespace CFC
 
             
         }
-
         [HarmonyPatch(typeof(CookingStation), nameof(CookingStation.OnInteract))]
         [HarmonyPriority(0)]
         public static class CookingInteractTranspiler
@@ -170,6 +169,27 @@ namespace CFC
           
         }
         
+        [HarmonyPatch(typeof(Fermenter), nameof(Fermenter.FindCookableItem))]
+        public static class FermenterInteractTranspiler
+        {
+            [HarmonyTranspiler]
+            public static IEnumerable<CodeInstruction> FermenterInteract(IEnumerable<CodeInstruction> instructions)
+            {
+                return new CodeMatcher(instructions)
+                    .MatchForward(useEnd: false,
+                        new CodeMatch(OpCodes.Ldc_I4_M1),
+                        new CodeMatch(OpCodes.Ldc_I4_0))
+                    .Advance(3)
+                    .InsertAndAdvance(new CodeInstruction(OpCodes.Ldarg_0))
+                    .InsertAndAdvance(new CodeInstruction(OpCodes.Ldarg_1))
+                    .InsertAndAdvance(new CodeInstruction(OpCodes.Ldloc_1))
+                    .InsertAndAdvance(Transpilers.EmitDelegate<Func<Fermenter,Inventory, Fermenter.ItemConversion, ItemDrop.ItemData>>(GetFermentableFromChest))
+                    .InstructionEnumeration();
+            }
+
+            
+        }
+
         #endregion
         #region Transpiler Methods
         private static void RemoveItemsFromChests(Player player, Piece.Requirement item, int amount, int itemQuality)
@@ -240,7 +260,8 @@ namespace CFC
             {
                 if(c == null) continue;
                 if(Player.m_localPlayer == null)break;
-                if(!CFCMod.ShouldSearchWardedAreas!.Value && !c.CheckAccess(Player.m_localPlayer.GetPlayerID()) && !PrivateArea.CheckAccess(c.transform.position, 0, false, true)) continue;
+                if(!CFCMod.ShouldSearchWardedAreas!.Value && !c.CheckAccess(Player.m_localPlayer.GetPlayerID()) && 
+                   !PrivateArea.CheckAccess(c.transform.position, 0, false, true)) continue;
                 if(Vector3.Distance(c.transform.position, Player.m_localPlayer.transform.position) > CFCMod.FuelingDistance!.Value) continue;
                 if(c.m_inventory == null) continue;
                 var addedFuel = c.m_inventory.CountItems(fireplace.m_fuelItem.m_itemData.m_shared.m_name, -1);
@@ -255,25 +276,45 @@ namespace CFC
             }
             _elapsedTime = 0;
         }
-        
         private static ItemDrop.ItemData GetCookableFromChest(CookingStation cookingStation, Inventory inventory)
         {
             var t = cookingStation.FindCookableItem(inventory);
-            if (t == null)
+            if (t != null) return t!;
+            foreach (var c in from c in Patches.ContainerAwakePatch.Continers.TakeWhile(c => Player.m_localPlayer != null) 
+                     where CFCMod.ShouldSearchWardedAreas!.Value ||
+                           c.CheckAccess(Player.m_localPlayer.GetPlayerID()) ||
+                           PrivateArea.CheckAccess(c.transform.position, 0, false, true) 
+                     where !(Vector3.Distance(c.transform.position, Player.m_localPlayer.transform.position) > CFCMod.FuelingDistance!.Value) 
+                     where c.m_inventory != null select c)
             {
-                foreach (var c in Patches.ContainerAwakePatch.Continers)
+                t = cookingStation.FindCookableItem(c.m_inventory);
+                if (t != null)
                 {
-                    if (Player.m_localPlayer == null) break;
-                    if(!CFCMod.ShouldSearchWardedAreas!.Value && !c.CheckAccess(Player.m_localPlayer.GetPlayerID()) && !PrivateArea.CheckAccess(c.transform.position, 0, false, true)) continue;
-                    if(Vector3.Distance(c.transform.position, Player.m_localPlayer.transform.position) > CFCMod.FuelingDistance!.Value)continue;
-                    if(c.m_inventory == null) continue;
-                    t = cookingStation.FindCookableItem(c.m_inventory);
-                    if (t != null) return t;
+                    c.m_inventory.RemoveItem(t.m_shared.m_name, 1, -1);
+                    return t;
                 }
             }
             return t!;
         }
+        private static ItemDrop.ItemData GetFermentableFromChest(Fermenter fermenter, Inventory inventory, Fermenter.ItemConversion arg3)
+        {
+            foreach (var c in Patches.ContainerAwakePatch.Continers)
+            {
+                if(c == null) continue;
+                if(Player.m_localPlayer == null)break;
+                if(!CFCMod.ShouldSearchWardedAreas!.Value && !c.CheckAccess(Player.m_localPlayer.GetPlayerID()) && 
+                   !PrivateArea.CheckAccess(c.transform.position, 0, false, true)) continue;
+                if(Vector3.Distance(c.transform.position, Player.m_localPlayer.transform.position) > CFCMod.FuelingDistance!.Value) continue;
+                if(c.m_inventory == null) continue;
+                var t = c.m_inventory.GetItem(arg3.m_from.m_itemData.m_shared.m_name);
+                if (t == null) continue;
+                if (fermenter.GetStatus() != Fermenter.Status.Empty || !fermenter.IsItemAllowed(t)) continue;
+                c.m_inventory.RemoveOneItem(t);
+                fermenter.m_nview.InvokeRPC("AddItem", (object)t.m_dropPrefab.name);
+                return t;
+            } 
+            return null!;
+        }
         #endregion
     }
 }
-

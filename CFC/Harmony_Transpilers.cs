@@ -105,9 +105,9 @@ namespace CFC
 
             }
         }
-        
-        
+
         [HarmonyPatch(typeof(Fireplace), nameof(Fireplace.UpdateFireplace))]
+        [HarmonyPriority(0)]
         public static class FirePlaceFuelTranspiler
         {
             [HarmonyTranspiler]
@@ -115,8 +115,9 @@ namespace CFC
             {
                 return new CodeMatcher(instructions)
                     .MatchForward(useEnd: false,
-                        new CodeMatch(OpCodes.Callvirt, AccessTools.Method(typeof(ZNetView), nameof(ZNetView.IsOwner))))
-                    .Advance(1)
+                        new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(Fireplace), nameof(Fireplace.m_nview))),
+                        new CodeMatch(OpCodes.Callvirt, AccessTools.Method(typeof(ZNetView), nameof(ZNetView.GetZDO))))
+                    .Advance(4)
                     .InsertAndAdvance(new CodeInstruction(OpCodes.Ldarg_0))
                     .InsertAndAdvance(new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(HarmonyTranspilers), nameof(FuelFromChest))))
                     .InstructionEnumeration();
@@ -124,6 +125,7 @@ namespace CFC
         }
 
         [HarmonyPatch(typeof(Fireplace), nameof(Fireplace.Interact))]
+        [HarmonyPriority(0)]
         public static class FirePlaceInteractFuelTranspiler
         {
             [HarmonyTranspiler]
@@ -146,10 +148,11 @@ namespace CFC
             
         }
         #endregion
-        #region Transpiler Methiods
+        #region Transpiler Methods
         private static void RemoveItemsFromChests(Player player, Piece.Requirement item, int amount, int itemQuality)
         {
             var inventoryAmount = player.m_inventory.CountItems(item.m_resItem.m_itemData.m_shared.m_name);
+            if(inventoryAmount <=0)return;
             player.m_inventory.RemoveItem(item.m_resItem.m_itemData.m_shared.m_name, amount, itemQuality);
             amount -= inventoryAmount;
             if (amount <= 0) return;
@@ -157,6 +160,7 @@ namespace CFC
             // ReSharper disable once ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator
             foreach (var c in Patches.ContainerAwakePatch.Continers)
             {
+                if(!CFCMod.ShouldSearchWardedAreas!.Value && !c.CheckAccess(player.GetPlayerID()) && !PrivateArea.CheckAccess(c.transform.position, 0, false, true)) continue;
                 if(Vector3.Distance(c.transform.position, player.transform.position) > CFCMod.ChestDistance!.Value)continue;
                 inventoryAmount = c.m_inventory.CountItems(item.m_resItem.m_itemData.m_shared.m_name);
                 c.m_inventory.RemoveItem(item.m_resItem.m_itemData.m_shared.m_name, amount, itemQuality);
@@ -173,6 +177,7 @@ namespace CFC
             foreach (var c in Patches.ContainerAwakePatch.Continers)
             {
                 if(c == null ||item == null || player ==null) continue;
+                if(!CFCMod.ShouldSearchWardedAreas!.Value && !c.CheckAccess(player.GetPlayerID()) && !PrivateArea.CheckAccess(c.transform.position, 0, false, true)) continue;
                 if (Vector3.Distance(player.transform.position, c.transform.position) >
                     CFCMod.ChestDistance?.Value) continue;
                 if(c.m_inventory == null) continue;
@@ -191,6 +196,7 @@ namespace CFC
             foreach (var c in Patches.ContainerAwakePatch.Continers)
             {
                 if (Player.m_localPlayer == null) break;
+                if(!CFCMod.ShouldSearchWardedAreas!.Value && !c.CheckAccess(Player.m_localPlayer.GetPlayerID()) && !PrivateArea.CheckAccess(c.transform.position, 0, false, true)) continue;
                 if(Vector3.Distance(c.transform.position, Player.m_localPlayer.transform.position) > CFCMod.FuelingDistance!.Value)continue;
                 if(c.m_inventory == null) continue;
                 if (c.m_inventory.HaveItem(itemData.m_shared.m_name))
@@ -205,31 +211,25 @@ namespace CFC
         private static void FuelFromChest(Fireplace fireplace)
         {
             _elapsedTime += Time.deltaTime;
-            if (_elapsedTime <= CFCMod.SearchInterval!.Value)
+            var currentZdoFuel = Mathf.CeilToInt(fireplace.m_nview.GetZDO().GetFloat("fuel"));
+            if (currentZdoFuel >= CFCMod.LowFuelValue!.Value || _elapsedTime <= CFCMod.SearchInterval!.Value) return;
+            foreach (var c in Patches.ContainerAwakePatch.Continers)
             {
-                return;
-            }
-            var currentZDOFuel = Mathf.CeilToInt(fireplace.m_nview.GetZDO().GetFloat("fuel"));
-            var toAdd = Mathf.CeilToInt(fireplace.m_maxFuel) - currentZDOFuel;
-            if (toAdd >= CFCMod.LowFuelValue!.Value)
-            {
-                foreach (var c in Patches.ContainerAwakePatch.Continers)
+                if(c == null) continue;
+                if(Player.m_localPlayer == null)break;
+                if(!CFCMod.ShouldSearchWardedAreas!.Value && !c.CheckAccess(Player.m_localPlayer.GetPlayerID()) && !PrivateArea.CheckAccess(c.transform.position, 0, false, true)) continue;
+                if(Vector3.Distance(c.transform.position, Player.m_localPlayer.transform.position) > CFCMod.FuelingDistance!.Value) continue;
+                if(c.m_inventory == null) continue;
+                var addedFuel = c.m_inventory.CountItems(fireplace.m_fuelItem.m_itemData.m_shared.m_name, -1);
+                var clampedfuel = Clamp(addedFuel,0, Mathf.CeilToInt(fireplace.m_maxFuel));
+                if (clampedfuel <= 0) continue;
+                for (int i = 0; i < clampedfuel; i++)
                 {
-                    if(Player.m_localPlayer == null)break;
-                    if(Vector3.Distance(c.transform.position, Player.m_localPlayer.transform.position) > CFCMod.FuelingDistance!.Value) continue;
-                    if(c.m_inventory == null) continue;
-                    var addedFuel = c.m_inventory.CountItems(fireplace.m_fuelItem.m_itemData.m_shared.m_name, -1);
-                    var clampedfuel = Clamp(addedFuel,0, Mathf.CeilToInt(fireplace.m_maxFuel));
-                    if (clampedfuel <= 0) continue;
-                    for (int i = 0; i < clampedfuel; i++)
-                    {
-                        fireplace.m_nview.InvokeRPC("AddFuel");
-                    }
-                    c.m_inventory.RemoveItem(fireplace.m_fuelItem.m_itemData.m_shared.m_name, clampedfuel, -1);
-                    if(clampedfuel == Mathf.CeilToInt(fireplace.m_maxFuel))break;
+                    fireplace.m_nview.InvokeRPC("AddFuel");
                 }
+                c.m_inventory.RemoveItem(fireplace.m_fuelItem.m_itemData.m_shared.m_name, clampedfuel, -1);
+                if(clampedfuel == Mathf.CeilToInt(fireplace.m_maxFuel))break;
             }
-
             _elapsedTime = 0;
         }
         #endregion

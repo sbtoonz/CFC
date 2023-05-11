@@ -10,7 +10,7 @@ namespace CFC
     public class CFCMod : BaseUnityPlugin
     {
         internal const string ModName = "CFCMod";
-        internal const string ModVersion = "1.0.4";
+        internal const string ModVersion = "1.0.5";
         private const string ModGUID = "CFCMod";
         private static Harmony harmony = null!;
 
@@ -34,6 +34,7 @@ namespace CFC
         internal static ConfigEntry<int>? FuelingDistance = null!;
         internal static ConfigEntry<int>? LowFuelValue = null!;
         internal static ConfigEntry<float>? SearchInterval = null!;
+        internal static ConfigEntry<bool>? ShouldSearchWardedAreas = null!;
         public void Awake()
         {
             Assembly assembly = Assembly.GetExecutingAssembly();
@@ -47,9 +48,12 @@ namespace CFC
                 new ConfigDescription("This is how far to check chests away from players fore fire fuel no clue why bep displays this as % its in meters",
                     new AcceptableValueRange<int>(0, 100)));
             LowFuelValue = config("2 - FuelFromChest LowFuel", "What count of fuel to start hunting for more in chests", 1,
-                new ConfigDescription("This is how far to check chests away from players fore fire fuel no clue why bep displays this as % its in meters"));
-            SearchInterval = config("2 - FuelFromChest Search Interval", "How often should mod hunt for fuel in chests", 0.25f,
+                new ConfigDescription("This the volume of fuel when mod starts hunting for more fuel (wood)"));
+            SearchInterval = config("2 - FuelFromChest Search Interval", "How often should mod hunt for fuel in chests", 0.05f,
                 new ConfigDescription("this number is in seconds so 1.0 is 1 second the default setting is to check every quarter of a second"));
+            ShouldSearchWardedAreas = config("1 - General", "Should mod hunt warded chests", false,
+                new ConfigDescription(
+                    "This setting dictates whether the mod should hunt chests in a warded area or not"));
             configSync.AddLockingConfigEntry(ServerConfigLocked);
         }
     }

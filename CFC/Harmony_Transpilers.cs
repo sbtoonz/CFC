@@ -147,6 +147,29 @@ namespace CFC
 
             
         }
+
+        [HarmonyPatch(typeof(CookingStation), nameof(CookingStation.OnInteract))]
+        [HarmonyPriority(0)]
+        public static class CookingInteractTranspiler
+        {
+            [HarmonyTranspiler]
+            public static IEnumerable<CodeInstruction> CookInteract(IEnumerable<CodeInstruction> instructions)
+            {
+                return new CodeMatcher(instructions)
+                    .MatchForward(useEnd: false,
+                        new CodeMatch(OpCodes.Ldarg_0),
+                        new CodeMatch(OpCodes.Ldarg_1),
+                        new CodeMatch(OpCodes.Callvirt, AccessTools.Method(typeof(Humanoid), nameof(Humanoid.GetInventory))),
+                        new CodeMatch(OpCodes.Call, AccessTools.Method(typeof(CookingStation), nameof(CookingStation.FindCookableItem))))
+                    .Advance(3)
+                    .RemoveInstruction()
+                    .InsertAndAdvance(Transpilers.EmitDelegate<Func<CookingStation,Inventory, ItemDrop.ItemData>>(GetCookableFromChest))
+                    .InstructionEnumeration();
+            }
+
+          
+        }
+        
         #endregion
         #region Transpiler Methods
         private static void RemoveItemsFromChests(Player player, Piece.Requirement item, int amount, int itemQuality)
@@ -231,6 +254,24 @@ namespace CFC
                 if(clampedfuel == Mathf.CeilToInt(fireplace.m_maxFuel))break;
             }
             _elapsedTime = 0;
+        }
+        
+        private static ItemDrop.ItemData GetCookableFromChest(CookingStation cookingStation, Inventory inventory)
+        {
+            var t = cookingStation.FindCookableItem(inventory);
+            if (t == null)
+            {
+                foreach (var c in Patches.ContainerAwakePatch.Continers)
+                {
+                    if (Player.m_localPlayer == null) break;
+                    if(!CFCMod.ShouldSearchWardedAreas!.Value && !c.CheckAccess(Player.m_localPlayer.GetPlayerID()) && !PrivateArea.CheckAccess(c.transform.position, 0, false, true)) continue;
+                    if(Vector3.Distance(c.transform.position, Player.m_localPlayer.transform.position) > CFCMod.FuelingDistance!.Value)continue;
+                    if(c.m_inventory == null) continue;
+                    t = cookingStation.FindCookableItem(c.m_inventory);
+                    if (t != null) return t;
+                }
+            }
+            return t!;
         }
         #endregion
     }

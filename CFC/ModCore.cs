@@ -10,7 +10,7 @@ namespace CFC
     public class CFCMod : BaseUnityPlugin
     {
         internal const string ModName = "CFCMod";
-        internal const string ModVersion = "1.0.5";
+        internal const string ModVersion = "1.0.6";
         private const string ModGUID = "CFCMod";
         private static Harmony harmony = null!;
 

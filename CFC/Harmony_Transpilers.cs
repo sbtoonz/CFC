@@ -225,14 +225,69 @@ namespace CFC
                         new CodeMatch(OpCodes.Ldarg_0),
                         new CodeMatch(OpCodes.Ldarg_2),
                         new CodeMatch(OpCodes.Callvirt, AccessTools.Method(typeof(Humanoid), nameof(Humanoid.GetInventory)))
-                        )
+                    )
                     .Advance(3)
                     .RemoveInstruction()
                     .InsertAndAdvance(Transpilers.EmitDelegate<Func<Smelter,Inventory, ItemDrop.ItemData>>(GetSmeltableFromChest))
                     .InstructionEnumeration();
             }
+        }
 
-            
+        [HarmonyPatch(typeof(Smelter), nameof(Smelter.UpdateSmelter))]
+        public static class UpdateSmelterTranspiler
+        {
+            [HarmonyTranspiler]
+            public static IEnumerable<CodeInstruction> SmelterUpdate(IEnumerable<CodeInstruction> instructions)
+            {
+                return new CodeMatcher(instructions)
+                    .MatchForward(useEnd: false,
+                        new CodeMatch(OpCodes.Ldarg_0),
+                        new CodeMatch(OpCodes.Call, AccessTools.Method(typeof(Smelter), nameof(Smelter.GetQueuedOre))),
+                        new CodeMatch(OpCodes.Ldstr)
+                    )
+                    .Advance(1)
+                    .RemoveInstructions(3)
+                    .InsertAndAdvance(Transpilers.EmitDelegate<Func<Smelter, bool>>(Test))
+                    .InstructionEnumeration();
+            }
+
+            private static bool Test(Smelter smelter)
+            {
+                if(smelter.GetQueuedOre() == "")
+                    foreach (var c in Patches.ContainerAwakePatch.Continers)
+                    {
+                        if(c == null) continue;
+                        if(Player.m_localPlayer == null)break;
+                        if(!CFCMod.ShouldSearchWardedAreas!.Value && !c.CheckAccess(Player.m_localPlayer.GetPlayerID()) && 
+                           !PrivateArea.CheckAccess(c.transform.position, 0, false, true)) continue;
+                        if(Vector3.Distance(c.transform.position, smelter.transform.position) > CFCMod.FuelingDistance!.Value) continue;
+                        if(c.m_inventory == null) continue;
+                        var id = smelter.FindCookableItem(c.m_inventory);
+                        if (id != null)
+                        {
+                            if (id.m_dropPrefab == null)
+                            {
+                                c.m_inventory.RemoveItem(id.m_shared.m_name, 1, -1);
+                                smelter.m_nview.InvokeRPC("AddOre", c.m_inventory.GetItem(id.m_shared.m_name).m_dropPrefab.name);
+                                smelter.m_addedOreTime = Time.time;
+                                return false;
+                            }
+                            if (id.m_dropPrefab != null)
+                            {
+                                for (int i = 0; i < smelter.m_maxOre; i++)
+                                {
+                                    c.m_inventory.RemoveItem(id.m_shared.m_name, 1, -1);
+                                    smelter.m_nview.InvokeRPC("AddOre", id.m_dropPrefab.name);
+                                    smelter.m_addedOreTime = Time.time; 
+                                }
+                                return false;
+                            }
+                        }
+
+                    }
+                
+                return smelter.GetQueuedOre() == "";
+            }
         }
         
 
@@ -286,7 +341,7 @@ namespace CFC
             {
                 if (Player.m_localPlayer == null) break;
                 if(!CFCMod.ShouldSearchWardedAreas!.Value && !c.CheckAccess(Player.m_localPlayer.GetPlayerID()) && !PrivateArea.CheckAccess(c.transform.position, 0, false, true)) continue;
-                if(Vector3.Distance(c.transform.position, Player.m_localPlayer.transform.position) > CFCMod.FuelingDistance!.Value)continue;
+                if(Vector3.Distance(c.transform.position, fireplace.transform.position) > CFCMod.FuelingDistance!.Value)continue;
                 if(c.m_inventory == null) continue;
                 if (c.m_inventory.HaveItem(itemData.m_shared.m_name))
                 {
@@ -308,7 +363,7 @@ namespace CFC
                 if(Player.m_localPlayer == null)break;
                 if(!CFCMod.ShouldSearchWardedAreas!.Value && !c.CheckAccess(Player.m_localPlayer.GetPlayerID()) && 
                    !PrivateArea.CheckAccess(c.transform.position, 0, false, true)) continue;
-                if(Vector3.Distance(c.transform.position, Player.m_localPlayer.transform.position) > CFCMod.FuelingDistance!.Value) continue;
+                if(Vector3.Distance(c.transform.position, fireplace.transform.position) > CFCMod.FuelingDistance!.Value) continue;
                 if(c.m_inventory == null) continue;
                 var addedFuel = c.m_inventory.CountItems(fireplace.m_fuelItem.m_itemData.m_shared.m_name, -1);
                 var clampedfuel = Clamp(addedFuel,0, Mathf.CeilToInt(fireplace.m_maxFuel));
@@ -330,7 +385,7 @@ namespace CFC
                      where CFCMod.ShouldSearchWardedAreas!.Value ||
                            c.CheckAccess(Player.m_localPlayer.GetPlayerID()) ||
                            PrivateArea.CheckAccess(c.transform.position, 0, false, true) 
-                     where !(Vector3.Distance(c.transform.position, Player.m_localPlayer.transform.position) > CFCMod.FuelingDistance!.Value) 
+                     where !(Vector3.Distance(c.transform.position, cookingStation.transform.position) > CFCMod.FuelingDistance!.Value) 
                      where c.m_inventory != null select c)
             {
                 t = cookingStation.FindCookableItem(c.m_inventory);
@@ -350,7 +405,7 @@ namespace CFC
                 if(Player.m_localPlayer == null)break;
                 if(!CFCMod.ShouldSearchWardedAreas!.Value && !c.CheckAccess(Player.m_localPlayer.GetPlayerID()) && 
                    !PrivateArea.CheckAccess(c.transform.position, 0, false, true)) continue;
-                if(Vector3.Distance(c.transform.position, Player.m_localPlayer.transform.position) > CFCMod.FuelingDistance!.Value) continue;
+                if(Vector3.Distance(c.transform.position, fermenter.transform.position) > CFCMod.FuelingDistance!.Value) continue;
                 if(c.m_inventory == null) continue;
                 var t = c.m_inventory.GetItem(arg3.m_from.m_itemData.m_shared.m_name);
                 if (t == null) continue;
@@ -372,7 +427,7 @@ namespace CFC
                     if(Player.m_localPlayer == null)break;
                     if(!CFCMod.ShouldSearchWardedAreas!.Value && !c.CheckAccess(Player.m_localPlayer.GetPlayerID()) && 
                        !PrivateArea.CheckAccess(c.transform.position, 0, false, true)) continue;
-                    if(Vector3.Distance(c.transform.position, Player.m_localPlayer.transform.position) > CFCMod.FuelingDistance!.Value) continue;
+                    if(Vector3.Distance(c.transform.position, smelter.transform.position) > CFCMod.FuelingDistance!.Value) continue;
                     if(c.m_inventory == null) continue;
                     t = smelter.FindCookableItem(c.m_inventory);
                     if (t != null)
@@ -399,12 +454,11 @@ namespace CFC
                     if(Player.m_localPlayer == null)break;
                     if(!CFCMod.ShouldSearchWardedAreas!.Value && !c.CheckAccess(Player.m_localPlayer.GetPlayerID()) && 
                        !PrivateArea.CheckAccess(c.transform.position, 0, false, true)) continue;
-                    if(Vector3.Distance(c.transform.position, Player.m_localPlayer.transform.position) > CFCMod.FuelingDistance!.Value) continue;
+                    if(Vector3.Distance(c.transform.position, smelter.transform.position) > CFCMod.FuelingDistance!.Value) continue;
                     if(c.m_inventory == null) continue;
                     if (c.m_inventory.HaveItem(smelter.m_fuelItem.m_itemData.m_shared.m_name))
                     {
                         c.m_inventory.RemoveItem(smelter.m_fuelItem.m_itemData.m_shared.m_name, 1, -1);
-                        //smelter.m_nview.InvokeRPC("AddFuel");
                         return true;
                     }
                 } 

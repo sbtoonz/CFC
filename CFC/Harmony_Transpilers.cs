@@ -190,7 +190,7 @@ namespace CFC
 
             
         }
-
+        
         [HarmonyPatch(typeof(Smelter),nameof(Smelter.OnAddFuel))]
         [HarmonyPriority(0)]
         public static class OnSmeltFuelTranspiler
@@ -198,7 +198,7 @@ namespace CFC
             [HarmonyTranspiler]
             public static IEnumerable<CodeInstruction> SmeltFuel(IEnumerable<CodeInstruction> instructions)
             {
-                return new CodeMatcher(instructions)
+                var cm = new CodeMatcher(instructions)
                     .MatchForward(useEnd: false,
                         new CodeMatch(OpCodes.Ldarg_2),
                         new CodeMatch(OpCodes.Callvirt, AccessTools.Method(typeof(Humanoid),nameof(Humanoid.GetInventory))))
@@ -206,6 +206,7 @@ namespace CFC
                     .RemoveInstructions(5)
                     .InsertAndAdvance(Transpilers.EmitDelegate<Func<Inventory,Smelter, bool>>(SmelterAddFuel))
                     .InstructionEnumeration();
+                return cm;
             }
             
 
@@ -214,7 +215,7 @@ namespace CFC
         
         [HarmonyPatch(typeof(Smelter), nameof(Smelter.OnAddOre))]
         [HarmonyPriority(0)]
-        public static class SmelterInteractTranspiler
+        public static class OnSmeltAddOreTranspiler
         {
             [HarmonyTranspiler]
             public static IEnumerable<CodeInstruction> SmelterAddOre(IEnumerable<CodeInstruction> instructions)
@@ -234,7 +235,6 @@ namespace CFC
             
         }
         
-        //smelter updatesmelter
 
         #endregion
         #region Transpiler Methods
@@ -377,6 +377,10 @@ namespace CFC
                     t = smelter.FindCookableItem(c.m_inventory);
                     if (t != null)
                     {
+                        if (smelter.GetQueueSize() >= smelter.m_maxOre)
+                        {
+                            return t;
+                        }
                         c.m_inventory.RemoveOneItem(t);
                         return t;
                     }
@@ -385,24 +389,25 @@ namespace CFC
 
             return t!;
         }
-        private static bool SmelterAddFuel(Inventory inventory, Smelter smelter)
+        private static bool SmelterAddFuel(Inventory inventory,Smelter smelter)
         {
-            if (inventory.HaveItem(smelter.m_fuelItem.m_itemData.m_shared.m_name))
-                return inventory.HaveItem(smelter.m_fuelItem.m_itemData.m_shared.m_name);
-            foreach (var c in Patches.ContainerAwakePatch.Continers)
+            if (!inventory.HaveItem(smelter.m_fuelItem.m_itemData.m_shared.m_name))
             {
-                if(c == null) continue;
-                if(Player.m_localPlayer == null)break;
-                if(!CFCMod.ShouldSearchWardedAreas!.Value && !c.CheckAccess(Player.m_localPlayer.GetPlayerID()) && 
-                   !PrivateArea.CheckAccess(c.transform.position, 0, false, true)) continue;
-                if(Vector3.Distance(c.transform.position, Player.m_localPlayer.transform.position) > CFCMod.FuelingDistance!.Value) continue;
-                if(c.m_inventory == null) continue;
-                if (c.m_inventory.HaveItem(smelter.m_fuelItem.m_itemData.m_shared.m_name))
+                foreach (var c in Patches.ContainerAwakePatch.Continers)
                 {
-                    c.m_inventory.RemoveOneItem(smelter.m_fuelItem.m_itemData);
-                    smelter.m_nview.InvokeRPC("AddFuel");
-                    return true;
-                }
+                    if(c == null) continue;
+                    if(Player.m_localPlayer == null)break;
+                    if(!CFCMod.ShouldSearchWardedAreas!.Value && !c.CheckAccess(Player.m_localPlayer.GetPlayerID()) && 
+                       !PrivateArea.CheckAccess(c.transform.position, 0, false, true)) continue;
+                    if(Vector3.Distance(c.transform.position, Player.m_localPlayer.transform.position) > CFCMod.FuelingDistance!.Value) continue;
+                    if(c.m_inventory == null) continue;
+                    if (c.m_inventory.HaveItem(smelter.m_fuelItem.m_itemData.m_shared.m_name))
+                    {
+                        c.m_inventory.RemoveItem(smelter.m_fuelItem.m_itemData.m_shared.m_name, 1, -1);
+                        //smelter.m_nview.InvokeRPC("AddFuel");
+                        return true;
+                    }
+                } 
             }
             return inventory.HaveItem(smelter.m_fuelItem.m_itemData.m_shared.m_name);
         }

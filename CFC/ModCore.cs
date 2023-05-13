@@ -35,6 +35,8 @@ namespace CFC
         internal static ConfigEntry<int>? LowFuelValue = null!;
         internal static ConfigEntry<float>? SearchInterval = null!;
         internal static ConfigEntry<bool>? ShouldSearchWardedAreas = null!;
+        internal static ConfigEntry<int>? LowSmelterFuelValue = null!;
+        internal static ConfigEntry<int>? SmelterFuelDistnace = null!;
         public void Awake()
         {
             Assembly assembly = Assembly.GetExecutingAssembly();
@@ -54,6 +56,12 @@ namespace CFC
             ShouldSearchWardedAreas = config("1 - General", "Should mod hunt warded chests", false,
                 new ConfigDescription(
                     "This setting dictates whether the mod should hunt chests in a warded area or not"));
+            
+            LowSmelterFuelValue = config("2 - SmeltFromChest LowFuel", "What count of fuel to start hunting for more in chests", 1,
+                new ConfigDescription("This the volume of fuel when mod starts hunting for more fuel (wood)"));
+            SmelterFuelDistnace = config("2 - SmeltFromChest Distance", "Distance To Check", 15,
+                new ConfigDescription("This is how far to check chests away from players fore smelter fuel no clue why bep displays this as % its in meters",
+                    new AcceptableValueRange<int>(0, 100)));
             configSync.AddLockingConfigEntry(ServerConfigLocked);
         }
     }

@@ -21,7 +21,7 @@ namespace CFC
                 if(!Continers.Contains(__instance))Continers.Add(__instance);
                 if (__instance.m_nview != null)
                 {
-                    if(__instance.m_nview.GetZDO().GetInt("ChestType") <= 0)
+                    if(__instance.m_nview.GetZDO() != null && __instance.m_nview.GetZDO().GetInt("ChestType") <= 0)
                         __instance.m_nview.GetZDO().Set("ChestType", 6);
                 }
             }
@@ -57,7 +57,7 @@ namespace CFC
                 {
                     var i = __instance.m_nview.GetZDO().GetInt("ChestType");
                     ++i;
-                    if(i >5)
+                    if(i >6)
                         i=1;
                     __instance.m_nview.GetZDO().Set("ChestType", i);
                     return false;

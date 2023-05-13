@@ -249,9 +249,13 @@ namespace CFC
                     .Advance(1)
                     .RemoveInstructions(3)
                     .InsertAndAdvance(Transpilers.EmitDelegate<Func<Smelter, bool>>(AutoFeedSmelter))
+                    .Advance(7)
+                    .RemoveInstruction()
+                    .InsertAndAdvance(Transpilers.EmitDelegate<Func<Smelter, float>>(AutoFuelSmelter))
                     .InstructionEnumeration();
             }
 
+            
         }
 
 
@@ -311,11 +315,11 @@ namespace CFC
             {
                 if(c == null ||item == null || player ==null) continue;
                 if(c.m_nview == null) continue;
+                if (c.m_piece == null || c.m_piece.m_creator == -1) continue;
                 if(!CFCMod.ShouldSearchWardedAreas!.Value && c.m_privacy != Container.PrivacySetting.Public  && !c.CheckAccess(player.GetPlayerID()) && !PrivateArea.CheckAccess(c.transform.position, 0, false, true)) continue;
                 if (Vector3.Distance(player.transform.position, c.transform.position) >
                     CFCMod.ChestDistance?.Value) continue;
                 if(c.m_inventory == null) continue;
-                if(c.gameObject.name.StartsWith("Player"))continue;
                 if (c.m_inventory.HaveItem(item.m_resItem.m_itemData.m_shared.m_name))
                 {
                     i += c.m_inventory.CountItems(item.m_resItem.m_itemData.m_shared.m_name);
@@ -357,6 +361,10 @@ namespace CFC
                    !PrivateArea.CheckAccess(c.transform.position, 0, false, true)) continue;
                 if(Vector3.Distance(c.transform.position, fireplace.transform.position) > CFCMod.FuelingDistance!.Value) continue;
                 if(c.m_inventory == null) continue;
+                var z = c.m_nview.GetZDO();
+                ChestType t = ChestType.None;
+                if (z != null) t = (ChestType)z.GetInt("ChestType");
+                if(t != ChestType.Fire) continue;
                 var addedFuel = c.m_inventory.CountItems(fireplace.m_fuelItem.m_itemData.m_shared.m_name, -1);
                 var clampedfuel = Clamp(addedFuel,0, Mathf.CeilToInt(fireplace.m_maxFuel));
                 if (clampedfuel <= 0) continue;
@@ -421,7 +429,7 @@ namespace CFC
                     if(Player.m_localPlayer == null)break;
                     if(!CFCMod.ShouldSearchWardedAreas!.Value && c.m_privacy != Container.PrivacySetting.Public  && !c.CheckAccess(Player.m_localPlayer.GetPlayerID()) && 
                        !PrivateArea.CheckAccess(c.transform.position, 0, false, true)) continue;
-                    if(Vector3.Distance(c.transform.position, smelter.transform.position) > CFCMod.FuelingDistance!.Value) continue;
+                    if(Vector3.Distance(c.transform.position, smelter.transform.position) > CFCMod.SmelterFuelDistnace!.Value) continue;
                     if(c.m_inventory == null) continue;
                     var type = (ChestType)c.m_nview.GetZDO().GetInt("ChestType");
                     switch (smelter.gameObject.name)
@@ -519,61 +527,61 @@ namespace CFC
                     if(Player.m_localPlayer == null)break;
                     if(!CFCMod.ShouldSearchWardedAreas!.Value && c.m_privacy != Container.PrivacySetting.Public  && !c.CheckAccess(Player.m_localPlayer.GetPlayerID()) && 
                        !PrivateArea.CheckAccess(c.transform.position, 0, false, true)) continue;
-                    if(Vector3.Distance(c.transform.position, smelter.transform.position) > CFCMod.FuelingDistance!.Value) continue;
+                    if(Vector3.Distance(c.transform.position, smelter.transform.position) > CFCMod.SmelterFuelDistnace!.Value) continue;
                     if(c.m_inventory == null) continue;
                     var type = (ChestType)c.m_nview.GetZDO().GetInt("ChestType");
-                     switch (smelter.gameObject.name)
+                    switch (smelter.gameObject.name)
                     {
                         case "smelter(Clone)":
-                        if (type == ChestType.Smelter)
-                        {
-                            if (c.m_inventory.HaveItem(smelter.m_fuelItem.m_itemData.m_shared.m_name))
+                            if (type == ChestType.Smelter)
                             {
-                                c.m_inventory.RemoveItem(smelter.m_fuelItem.m_itemData.m_shared.m_name, 1, -1);
-                                return true;
+                                if (c.m_inventory.HaveItem(smelter.m_fuelItem.m_itemData.m_shared.m_name))
+                                {
+                                    c.m_inventory.RemoveItem(smelter.m_fuelItem.m_itemData.m_shared.m_name, 1, -1);
+                                    return true;
+                                }
                             }
-                        }
-                        break;
-                    case "blastfurnace(Clone)":
-                        if (type == ChestType.BlastFurnace)
-                        {
-                            if (c.m_inventory.HaveItem(smelter.m_fuelItem.m_itemData.m_shared.m_name))
+                            break;
+                        case "blastfurnace(Clone)":
+                            if (type == ChestType.BlastFurnace)
                             {
-                                c.m_inventory.RemoveItem(smelter.m_fuelItem.m_itemData.m_shared.m_name, 1, -1);
-                                return true;
+                                if (c.m_inventory.HaveItem(smelter.m_fuelItem.m_itemData.m_shared.m_name))
+                                {
+                                    c.m_inventory.RemoveItem(smelter.m_fuelItem.m_itemData.m_shared.m_name, 1, -1);
+                                    return true;
+                                }
                             }
-                        }
-                        break;
-                    case "charcoal_kiln(Clone)":
-                        if (type == ChestType.Kiln)
-                        {
-                            if (c.m_inventory.HaveItem(smelter.m_fuelItem.m_itemData.m_shared.m_name))
+                            break;
+                        case "charcoal_kiln(Clone)":
+                            if (type == ChestType.Kiln)
                             {
-                                c.m_inventory.RemoveItem(smelter.m_fuelItem.m_itemData.m_shared.m_name, 1, -1);
-                                return true;
+                                if (c.m_inventory.HaveItem(smelter.m_fuelItem.m_itemData.m_shared.m_name))
+                                {
+                                    c.m_inventory.RemoveItem(smelter.m_fuelItem.m_itemData.m_shared.m_name, 1, -1);
+                                    return true;
+                                }
                             }
-                        }
-                        break;
-                    case "piece_sapcollector(Clone)":
-                        if (type == ChestType.SapCollector)
-                        {
-                            if (c.m_inventory.HaveItem(smelter.m_fuelItem.m_itemData.m_shared.m_name))
+                            break;
+                        case "piece_sapcollector(Clone)":
+                            if (type == ChestType.SapCollector)
                             {
-                                c.m_inventory.RemoveItem(smelter.m_fuelItem.m_itemData.m_shared.m_name, 1, -1);
-                                return true;
+                                if (c.m_inventory.HaveItem(smelter.m_fuelItem.m_itemData.m_shared.m_name))
+                                {
+                                    c.m_inventory.RemoveItem(smelter.m_fuelItem.m_itemData.m_shared.m_name, 1, -1);
+                                    return true;
+                                }
                             }
-                        }
-                        break;
-                    default:
-                        if (type == ChestType.None)
-                        {
-                            if (c.m_inventory.HaveItem(smelter.m_fuelItem.m_itemData.m_shared.m_name))
+                            break;
+                        default:
+                            if (type == ChestType.None)
                             {
-                                c.m_inventory.RemoveItem(smelter.m_fuelItem.m_itemData.m_shared.m_name, 1, -1);
-                                return true;
+                                if (c.m_inventory.HaveItem(smelter.m_fuelItem.m_itemData.m_shared.m_name))
+                                {
+                                    c.m_inventory.RemoveItem(smelter.m_fuelItem.m_itemData.m_shared.m_name, 1, -1);
+                                    return true;
+                                }
                             }
-                        }
-                        break;
+                            break;
                     }
                     
                 } 
@@ -592,142 +600,220 @@ namespace CFC
                     if(Player.m_localPlayer == null)break;
                     if(!CFCMod.ShouldSearchWardedAreas!.Value && c.m_privacy != Container.PrivacySetting.Public  && !c.CheckAccess(Player.m_localPlayer.GetPlayerID()) && 
                        !PrivateArea.CheckAccess(c.transform.position, 0, false, true)) continue;
-                    if(Vector3.Distance(c.transform.position, smelter.transform.position) > CFCMod.FuelingDistance!.Value) continue;
+                    if(Vector3.Distance(c.transform.position, smelter.transform.position) > CFCMod.SmelterFuelDistnace!.Value) continue;
                     if(c.m_inventory == null) continue;
                     var id = smelter.FindCookableItem(c.m_inventory);
                     var type = (ChestType)c.m_nview.GetZDO().GetInt("ChestType");
                     switch (smelter.gameObject.name)
                     {
                         case "smelter(Clone)":
-                        if (type == ChestType.Smelter)
-                        {
-                            if (id != null)
+                            if (type == ChestType.Smelter)
                             {
-                                if (id.m_dropPrefab == null)
+                                if (id != null)
                                 {
-                                    c.m_inventory.RemoveItem(id.m_shared.m_name, 1, -1);
-                                    smelter.m_nview.InvokeRPC("AddOre", c.m_inventory.GetItem(id.m_shared.m_name).m_dropPrefab.name);
-                                    smelter.m_addedOreTime = Time.time;
-                                    return false;
-                                }
-                                if (id.m_dropPrefab != null)
-                                {
-                                    for (int i = 0; i < smelter.m_maxOre; i++)
+                                    if (id.m_dropPrefab == null)
                                     {
                                         c.m_inventory.RemoveItem(id.m_shared.m_name, 1, -1);
-                                        smelter.m_nview.InvokeRPC("AddOre", id.m_dropPrefab.name);
-                                        smelter.m_addedOreTime = Time.time; 
+                                        smelter.m_nview.InvokeRPC("AddOre", c.m_inventory.GetItem(id.m_shared.m_name).m_dropPrefab.name);
+                                        smelter.m_addedOreTime = Time.time;
+                                        return false;
                                     }
-                                    return false;
+                                    if (id.m_dropPrefab != null)
+                                    {
+                                        for (int i = 0; i < smelter.m_maxOre; i++)
+                                        {
+                                            c.m_inventory.RemoveItem(id.m_shared.m_name, 1, -1);
+                                            smelter.m_nview.InvokeRPC("AddOre", id.m_dropPrefab.name);
+                                            smelter.m_addedOreTime = Time.time; 
+                                        }
+                                        return false;
+                                    }
                                 }
                             }
-                        }
-                        break;
-                    case "blastfurnace(Clone)":
-                        if (type == ChestType.BlastFurnace)
-                        {
-                            if (id != null)
+                            break;
+                        case "blastfurnace(Clone)":
+                            if (type == ChestType.BlastFurnace)
                             {
-                                if (id.m_dropPrefab == null)
+                                if (id != null)
                                 {
-                                    c.m_inventory.RemoveItem(id.m_shared.m_name, 1, -1);
-                                    smelter.m_nview.InvokeRPC("AddOre", c.m_inventory.GetItem(id.m_shared.m_name).m_dropPrefab.name);
-                                    smelter.m_addedOreTime = Time.time;
-                                    return false;
-                                }
-                                if (id.m_dropPrefab != null)
-                                {
-                                    for (int i = 0; i < smelter.m_maxOre; i++)
+                                    if (id.m_dropPrefab == null)
                                     {
                                         c.m_inventory.RemoveItem(id.m_shared.m_name, 1, -1);
-                                        smelter.m_nview.InvokeRPC("AddOre", id.m_dropPrefab.name);
-                                        smelter.m_addedOreTime = Time.time; 
+                                        smelter.m_nview.InvokeRPC("AddOre", c.m_inventory.GetItem(id.m_shared.m_name).m_dropPrefab.name);
+                                        smelter.m_addedOreTime = Time.time;
+                                        return false;
                                     }
-                                    return false;
+                                    if (id.m_dropPrefab != null)
+                                    {
+                                        for (int i = 0; i < smelter.m_maxOre; i++)
+                                        {
+                                            c.m_inventory.RemoveItem(id.m_shared.m_name, 1, -1);
+                                            smelter.m_nview.InvokeRPC("AddOre", id.m_dropPrefab.name);
+                                            smelter.m_addedOreTime = Time.time; 
+                                        }
+                                        return false;
+                                    }
                                 }
                             }
-                        }
-                        break;
-                    case "charcoal_kiln(Clone)":
-                        if (type == ChestType.Kiln)
-                        {
-                            if (id != null)
+                            break;
+                        case "charcoal_kiln(Clone)":
+                            if (type == ChestType.Kiln)
                             {
-                                if (id.m_dropPrefab == null)
+                                if (id != null)
                                 {
-                                    c.m_inventory.RemoveItem(id.m_shared.m_name, 1, -1);
-                                    smelter.m_nview.InvokeRPC("AddOre", c.m_inventory.GetItem(id.m_shared.m_name).m_dropPrefab.name);
-                                    smelter.m_addedOreTime = Time.time;
-                                    return false;
-                                }
-                                if (id.m_dropPrefab != null)
-                                {
-                                    for (int i = 0; i < smelter.m_maxOre; i++)
+                                    if (id.m_dropPrefab == null)
                                     {
                                         c.m_inventory.RemoveItem(id.m_shared.m_name, 1, -1);
-                                        smelter.m_nview.InvokeRPC("AddOre", id.m_dropPrefab.name);
-                                        smelter.m_addedOreTime = Time.time; 
+                                        smelter.m_nview.InvokeRPC("AddOre", c.m_inventory.GetItem(id.m_shared.m_name).m_dropPrefab.name);
+                                        smelter.m_addedOreTime = Time.time;
+                                        return false;
                                     }
-                                    return false;
+                                    if (id.m_dropPrefab != null)
+                                    {
+                                        for (int i = 0; i < smelter.m_maxOre; i++)
+                                        {
+                                            c.m_inventory.RemoveItem(id.m_shared.m_name, 1, -1);
+                                            smelter.m_nview.InvokeRPC("AddOre", id.m_dropPrefab.name);
+                                            smelter.m_addedOreTime = Time.time; 
+                                        }
+                                        return false;
+                                    }
                                 }
                             }
-                        }
-                        break;
-                    case "piece_sapcollector(Clone)":
-                        if (type == ChestType.SapCollector)
-                        {
-                            if (id != null)
+                            break;
+                        case "piece_sapcollector(Clone)":
+                            if (type == ChestType.SapCollector)
                             {
-                                if (id.m_dropPrefab == null)
+                                if (id != null)
                                 {
-                                    c.m_inventory.RemoveItem(id.m_shared.m_name, 1, -1);
-                                    smelter.m_nview.InvokeRPC("AddOre", c.m_inventory.GetItem(id.m_shared.m_name).m_dropPrefab.name);
-                                    smelter.m_addedOreTime = Time.time;
-                                    return false;
-                                }
-                                if (id.m_dropPrefab != null)
-                                {
-                                    for (int i = 0; i < smelter.m_maxOre; i++)
+                                    if (id.m_dropPrefab == null)
                                     {
                                         c.m_inventory.RemoveItem(id.m_shared.m_name, 1, -1);
-                                        smelter.m_nview.InvokeRPC("AddOre", id.m_dropPrefab.name);
-                                        smelter.m_addedOreTime = Time.time; 
+                                        smelter.m_nview.InvokeRPC("AddOre", c.m_inventory.GetItem(id.m_shared.m_name).m_dropPrefab.name);
+                                        smelter.m_addedOreTime = Time.time;
+                                        return false;
                                     }
-                                    return false;
+                                    if (id.m_dropPrefab != null)
+                                    {
+                                        for (int i = 0; i < smelter.m_maxOre; i++)
+                                        {
+                                            c.m_inventory.RemoveItem(id.m_shared.m_name, 1, -1);
+                                            smelter.m_nview.InvokeRPC("AddOre", id.m_dropPrefab.name);
+                                            smelter.m_addedOreTime = Time.time; 
+                                        }
+                                        return false;
+                                    }
                                 }
                             }
-                        }
-                        break;
-                    default:
-                        if (type == ChestType.None)
-                        {
-                            if (id != null)
+                            break;
+                        default:
+                            if (type == ChestType.None)
                             {
-                                if (id.m_dropPrefab == null)
+                                if (id != null)
                                 {
-                                    c.m_inventory.RemoveItem(id.m_shared.m_name, 1, -1);
-                                    smelter.m_nview.InvokeRPC("AddOre", c.m_inventory.GetItem(id.m_shared.m_name).m_dropPrefab.name);
-                                    smelter.m_addedOreTime = Time.time;
-                                    return false;
-                                }
-                                if (id.m_dropPrefab != null)
-                                {
-                                    for (int i = 0; i < smelter.m_maxOre; i++)
+                                    if (id.m_dropPrefab == null)
                                     {
                                         c.m_inventory.RemoveItem(id.m_shared.m_name, 1, -1);
-                                        smelter.m_nview.InvokeRPC("AddOre", id.m_dropPrefab.name);
-                                        smelter.m_addedOreTime = Time.time; 
+                                        smelter.m_nview.InvokeRPC("AddOre", c.m_inventory.GetItem(id.m_shared.m_name).m_dropPrefab.name);
+                                        smelter.m_addedOreTime = Time.time;
+                                        return false;
                                     }
-                                    return false;
+                                    if (id.m_dropPrefab != null)
+                                    {
+                                        for (int i = 0; i < smelter.m_maxOre; i++)
+                                        {
+                                            c.m_inventory.RemoveItem(id.m_shared.m_name, 1, -1);
+                                            smelter.m_nview.InvokeRPC("AddOre", id.m_dropPrefab.name);
+                                            smelter.m_addedOreTime = Time.time; 
+                                        }
+                                        return false;
+                                    }
                                 }
                             }
-                        }
-                        break;
+                            break;
                     }
                     
 
                 }
             return smelter.GetQueuedOre() == "";
+        }
+        
+        private static float AutoFuelSmelter(Smelter smelter)
+        {
+            int toAdd = smelter.m_maxFuel - Mathf.CeilToInt(smelter.GetFuel());
+            
+            if (smelter.GetFuel() < CFCMod.LowSmelterFuelValue!.Value)
+            {
+                foreach (var c in Patches.ContainerAwakePatch.Continers)
+                {
+                    if(Player.m_localPlayer == null)break;
+                    if(c.m_nview == null) continue;
+                    if(!CFCMod.ShouldSearchWardedAreas!.Value && c.m_privacy != Container.PrivacySetting.Public  &&!c.CheckAccess(Player.m_localPlayer.GetPlayerID()) && 
+                       !PrivateArea.CheckAccess(c.transform.position, 0, false, true)) continue;
+                    if(Vector3.Distance(c.transform.position, smelter.transform.position) > CFCMod.SmelterFuelDistnace!.Value) continue;
+                    if(c.m_inventory == null) continue;
+                    if(c.m_nview == null)continue;
+                    var type = (ChestType)c.m_nview.GetZDO().GetInt("ChestType");
+                    for (int i = 0; i < toAdd; i++)
+                    {
+                        switch (smelter.gameObject.name)
+                        {
+                            case "smelter(Clone)":
+                                if (type == ChestType.Smelter)
+                                {
+                                    if (c.m_inventory.HaveItem(smelter.m_fuelItem.m_itemData.m_shared.m_name))
+                                    {
+                                        c.m_inventory.RemoveItem(smelter.m_fuelItem.m_itemData.m_shared.m_name, 1, -1);
+                                        smelter.m_nview.InvokeRPC("AddFuel");
+                                    }
+                                }
+                                break;
+                            case "blastfurnace(Clone)":
+                                if (type == ChestType.BlastFurnace)
+                                {
+                                    if (c.m_inventory.HaveItem(smelter.m_fuelItem.m_itemData.m_shared.m_name))
+                                    {
+                                        c.m_inventory.RemoveItem(smelter.m_fuelItem.m_itemData.m_shared.m_name, 1, -1);
+                                        smelter.m_nview.InvokeRPC("AddFuel");
+                                    }
+                                }
+                                break;
+                            case "charcoal_kiln(Clone)":
+                                if (type == ChestType.Kiln)
+                                {
+                                    if (c.m_inventory.HaveItem(smelter.m_fuelItem.m_itemData.m_shared.m_name))
+                                    {
+                                        c.m_inventory.RemoveItem(smelter.m_fuelItem.m_itemData.m_shared.m_name, 1, -1);
+                                        smelter.m_nview.InvokeRPC("AddFuel");
+                                    }
+                                }
+                                break;
+                            case "piece_sapcollector(Clone)":
+                                if (type == ChestType.SapCollector)
+                                {
+                                    if (c.m_inventory.HaveItem(smelter.m_fuelItem.m_itemData.m_shared.m_name))
+                                    {
+                                        c.m_inventory.RemoveItem(smelter.m_fuelItem.m_itemData.m_shared.m_name, 1, -1);
+                                        smelter.m_nview.InvokeRPC("AddFuel");
+                                    }
+                                }
+                                break;
+                            default:
+                                if (type == ChestType.None)
+                                {
+                                    if (c.m_inventory.HaveItem(smelter.m_fuelItem.m_itemData.m_shared.m_name))
+                                    {
+                                        c.m_inventory.RemoveItem(smelter.m_fuelItem.m_itemData.m_shared.m_name, 1, -1);
+                                        smelter.m_nview.InvokeRPC("AddFuel");
+                                    }
+                                }
+                                break;
+                        }
+                    }
+                    
+                }
+            }
+            return smelter.GetFuel();
         }
         
         public static void SmelterDepositHook(Smelter smelter, int stack, string ore)

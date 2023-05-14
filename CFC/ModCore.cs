@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System;
+using System.Reflection;
 using BepInEx;
 using BepInEx.Configuration;
 using HarmonyLib;
@@ -66,6 +67,11 @@ namespace CFC
                 new ConfigDescription("This is how far to check chests away from players fore smelter fuel no clue why bep displays this as % its in meters",
                     new AcceptableValueRange<int>(0, 100)));
             configSync.AddLockingConfigEntry(ServerConfigLocked);
+        }
+
+        private void OnDestroy()
+        {
+            harmony.UnpatchSelf();
         }
     }
 }

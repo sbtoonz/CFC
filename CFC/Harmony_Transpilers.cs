@@ -997,6 +997,7 @@ namespace CFC
         
         public static void SmelterDepositHook(Smelter smelter, int stack, string ore)
         {
+            bool spawnedItemFromSwitch = false;
             foreach (var c in Patches.ContainerAwakePatch.Continers)
             {
                 if(c == null) continue;
@@ -1010,6 +1011,7 @@ namespace CFC
                 var type = (ChestType)c.m_nview.GetZDO().GetInt("ChestType");
                 var itemC = smelter.GetItemConversion(ore);
                 if(itemC ==null)return;
+               
                 switch (smelter.gameObject.name)
                 {
                     case "smelter(Clone)":
@@ -1020,11 +1022,13 @@ namespace CFC
                             if(c.m_inventory.HaveItem(itemC.m_to.m_itemData.m_shared.m_name) && i != -1 || c.m_inventory.HaveEmptySlot() )
                             {
                                 c.m_inventory.AddItem(itemC.m_to.gameObject, stack);
+                                spawnedItemFromSwitch = true;
                                 break;
                             }
                             Object
                                 .Instantiate(itemC.m_to.gameObject, smelter.m_outputPoint.position,
                                     smelter.m_outputPoint.rotation).GetComponent<ItemDrop>().m_itemData.m_stack = stack;
+                            spawnedItemFromSwitch = true;
                         }
                         break;
                     case "blastfurnace(Clone)":
@@ -1035,8 +1039,10 @@ namespace CFC
                             if(c.m_inventory.HaveItem(itemC.m_to.m_itemData.m_shared.m_name) && i != -1 || c.m_inventory.HaveEmptySlot() )
                             {
                                 c.m_inventory.AddItem(itemC.m_to.gameObject, stack);
+                                spawnedItemFromSwitch = true;
                                 break;
                             }
+                            spawnedItemFromSwitch = true;
                             Object
                                 .Instantiate(itemC.m_to.gameObject, smelter.m_outputPoint.position,
                                     smelter.m_outputPoint.rotation).GetComponent<ItemDrop>().m_itemData.m_stack = stack;
@@ -1050,8 +1056,10 @@ namespace CFC
                             if(c.m_inventory.HaveItem(itemC.m_to.m_itemData.m_shared.m_name) && i != -1 || c.m_inventory.HaveEmptySlot() )
                             {
                                 c.m_inventory.AddItem(itemC.m_to.gameObject, stack);
+                                spawnedItemFromSwitch = true;
                                 break;
                             }
+                            spawnedItemFromSwitch = true;
                             Object
                                 .Instantiate(itemC.m_to.gameObject, smelter.m_outputPoint.position,
                                     smelter.m_outputPoint.rotation).GetComponent<ItemDrop>().m_itemData.m_stack = stack;
@@ -1065,8 +1073,10 @@ namespace CFC
                             if(c.m_inventory.HaveItem(itemC.m_to.m_itemData.m_shared.m_name) && i != -1 || c.m_inventory.HaveEmptySlot() )
                             {
                                 c.m_inventory.AddItem(itemC.m_to.gameObject, stack);
+                                spawnedItemFromSwitch = true;
                                 break;
                             }
+                            spawnedItemFromSwitch = true;
                             Object
                                 .Instantiate(itemC.m_to.gameObject, smelter.m_outputPoint.position,
                                     smelter.m_outputPoint.rotation).GetComponent<ItemDrop>().m_itemData.m_stack = stack;
@@ -1081,8 +1091,10 @@ namespace CFC
                             if(c.m_inventory.HaveItem(itemC.m_to.m_itemData.m_shared.m_name) && i != -1 || c.m_inventory.HaveEmptySlot() )
                             {
                                 c.m_inventory.AddItem(itemC.m_to.gameObject, stack);
+                                spawnedItemFromSwitch = true;
                                 break;
                             }
+                            spawnedItemFromSwitch = true;
                             Object
                                 .Instantiate(itemC.m_to.gameObject, smelter.m_outputPoint.position,
                                     smelter.m_outputPoint.rotation).GetComponent<ItemDrop>().m_itemData.m_stack = stack;
@@ -1096,6 +1108,11 @@ namespace CFC
                         break;
                 }
             } 
+            var itemCd = smelter.GetItemConversion(ore);
+            if(!spawnedItemFromSwitch)Object
+                .Instantiate(itemCd.m_to.gameObject, smelter.m_outputPoint.position,
+                    smelter.m_outputPoint.rotation).GetComponent<ItemDrop>().m_itemData.m_stack = stack;
+            
         }
 
         #endregion

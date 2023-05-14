@@ -22,7 +22,7 @@ namespace CFC
                 if (__instance.m_nview != null)
                 {
                     if(__instance.m_nview.GetZDO() != null && __instance.m_nview.GetZDO().GetInt("ChestType") <= 0)
-                        __instance.m_nview.GetZDO().Set("ChestType", 6);
+                        __instance.m_nview.GetZDO().Set("ChestType", 7);
                 }
             }
         }
@@ -57,7 +57,7 @@ namespace CFC
                 {
                     var i = __instance.m_nview.GetZDO().GetInt("ChestType");
                     ++i;
-                    if(i >6)
+                    if(i >7)
                         i=1;
                     __instance.m_nview.GetZDO().Set("ChestType", i);
                     return false;
@@ -76,6 +76,7 @@ namespace CFC
         Smelter = 3,
         Fire = 4,
         SapCollector = 5,
-        None = 6
+        EitrRefinery = 6,
+        None = 7
     }
 }

@@ -125,5 +125,10 @@
 	 </Target>
 	 <Target Name="Copy" AfterTargets="Build">
      <Exec Command="copy /Y &quot;$(TargetDir)$(AssemblyName).dll&quot; &quot;$(GamePath)\BepInEx\plugins\$(AssemblyName).dll&quot;" />
+	</Target><Target Name="Copy_ThunderStoreRelease" AfterTargets="Build">
+     <Exec Command="copy /Y &quot;$(TargetDir)$(AssemblyName).dll&quot; &quot;$(SolutionDir)\Thunderstore_Release\dist\plugins\$(AssemblyName).dll&quot;" />
 	</Target>
+    <!--<Target Name="TCLI" AfterTargets="Build">
+      <Exec Command="tcli &#45;&#45;config-path &quot;$(SolutionDir)Thunderstore_Release\thunderstore.toml&quot;"/>
+    </Target>-->
 </Project>

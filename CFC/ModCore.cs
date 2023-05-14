@@ -36,6 +36,7 @@ namespace CFC
         internal static ConfigEntry<float>? SearchInterval = null!;
         internal static ConfigEntry<bool>? ShouldSearchWardedAreas = null!;
         internal static ConfigEntry<int>? LowSmelterFuelValue = null!;
+        internal static ConfigEntry<int>? LowSmelterOreValue = null!;
         internal static ConfigEntry<int>? SmelterFuelDistnace = null!;
         public void Awake()
         {
@@ -59,6 +60,8 @@ namespace CFC
             
             LowSmelterFuelValue = config("2 - SmeltFromChest LowFuel", "What count of fuel to start hunting for more in chests", 1,
                 new ConfigDescription("This the volume of fuel when mod starts hunting for more fuel (wood)"));
+            LowSmelterOreValue = config("2 - SmeltFromChest LowOre", "What count of ore to start hunting for more in chests", 1,
+                new ConfigDescription("This the volume of ore when mod starts hunting for more ore"));
             SmelterFuelDistnace = config("2 - SmeltFromChest Distance", "Distance To Check", 15,
                 new ConfigDescription("This is how far to check chests away from players fore smelter fuel no clue why bep displays this as % its in meters",
                     new AcceptableValueRange<int>(0, 100)));

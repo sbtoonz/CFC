@@ -170,6 +170,26 @@ namespace CFC
           
         }
         
+        [HarmonyPatch(typeof(CookingStation), nameof(CookingStation.OnAddFuelSwitch))]
+        public static class CookingOnAddFuelTranspiler
+        {
+            [HarmonyTranspiler]
+            public static IEnumerable<CodeInstruction> CookingAddFuel(IEnumerable<CodeInstruction> instructions)
+            {
+                return  new CodeMatcher(instructions)
+                    .MatchForward(useEnd: false,
+                        new CodeMatch(OpCodes.Ldarg_2),
+                        new CodeMatch(OpCodes.Callvirt, AccessTools.Method(typeof(Humanoid), nameof(Humanoid.GetInventory))),
+                        new CodeMatch(OpCodes.Ldarg_0)
+                    )
+                    .Advance(3)
+                    .RemoveInstructions(5)
+                    .InsertAndAdvance(Transpilers.EmitDelegate<Func<Inventory, CookingStation,bool>>(CookingStationAddFuelHook))
+                    .InstructionEnumeration();
+            }
+        }
+        
+        
         [HarmonyPatch(typeof(Fermenter), nameof(Fermenter.FindCookableItem))]
         [HarmonyPriority(0)]
         public static class FermenterInteractTranspiler
@@ -254,8 +274,6 @@ namespace CFC
                     .InsertAndAdvance(Transpilers.EmitDelegate<Func<Smelter, float>>(AutoFuelSmelter))
                     .InstructionEnumeration();
             }
-
-            
         }
 
 
@@ -338,6 +356,8 @@ namespace CFC
                 if(Vector3.Distance(c.transform.position, fireplace.transform.position) > CFCMod.FuelingDistance!.Value)continue;
                 if(c.m_inventory == null) continue;
                 if(c.m_nview == null) continue;
+                var t = (ChestType)c.m_nview.GetZDO().GetInt("ChestType");
+                if(t != ChestType.Fire) continue;
                 if (c.m_inventory.HaveItem(itemData.m_shared.m_name))
                 {
                     inventory = c.m_inventory;
@@ -397,6 +417,50 @@ namespace CFC
             }
             return t!;
         }
+        private static bool CookingStationAddFuelHook(Inventory inventory, CookingStation station)
+        {
+            foreach (var c in Patches.ContainerAwakePatch.Continers)
+            {
+                if (Player.m_localPlayer == null) break;
+                if (c.m_nview == null) continue;
+                if (!CFCMod.ShouldSearchWardedAreas!.Value && c.m_privacy != Container.PrivacySetting.Public &&
+                    !c.CheckAccess(Player.m_localPlayer.GetPlayerID()) &&
+                    !PrivateArea.CheckAccess(c.transform.position, 0, false, true)) continue;
+                if (Vector3.Distance(c.transform.position, station.transform.position) >
+                    CFCMod.FuelingDistance!.Value) continue;
+                if (c.m_inventory == null) continue;
+                var i = c.m_inventory.CountItems(station.m_fuelItem.m_itemData.m_shared.m_name);
+                if (i > 0)
+                {
+                    c.m_inventory.RemoveItem(station.m_fuelItem.m_itemData.m_shared.m_name, 1, -1);
+                    return true;
+                }
+                 
+            }
+
+            return inventory.HaveItem(station.m_fuelItem.m_itemData.m_shared.m_name);
+        }
+        /*private static ItemDrop.ItemData CookingAddFoodHook(ItemDrop.ItemData item, CookingStation cookingStation)
+        {
+            foreach (var c in Patches.ContainerAwakePatch.Continers)
+            {
+                if (Player.m_localPlayer == null) break;
+                if (c.m_nview == null) continue;
+                if (!CFCMod.ShouldSearchWardedAreas!.Value && c.m_privacy != Container.PrivacySetting.Public &&
+                    !c.CheckAccess(Player.m_localPlayer.GetPlayerID()) &&
+                    !PrivateArea.CheckAccess(c.transform.position, 0, false, true)) continue;
+                if (Vector3.Distance(c.transform.position, Player.m_localPlayer.transform.position) >
+                    CFCMod.FuelingDistance!.Value) continue;
+                if (c.m_inventory == null) continue;
+                var id = cookingStation.FindCookableItem(c.m_inventory);
+                if (id != null)
+                {
+                    c.m_inventory.RemoveItem(id.m_shared.m_name, 1, -1);
+                    return id;
+                }
+            }
+            return item;
+        }*/
         private static ItemDrop.ItemData GetFermentableFromChest(Fermenter fermenter, Inventory inventory, Fermenter.ItemConversion arg3)
         {
             foreach (var c in Patches.ContainerAwakePatch.Continers)
@@ -589,10 +653,12 @@ namespace CFC
             return inventory.HaveItem(smelter.m_fuelItem.m_itemData.m_shared.m_name);
         }
         
-        //Todo: Refactor this so that it has an option to run at X needed amt instead of at 0 out of max 
+        private static float _elapsedTime2 = 0f;
         private static bool AutoFeedSmelter(Smelter smelter)
         {
-            if(smelter.GetQueuedOre() == "")
+            _elapsedTime2 += Time.deltaTime;
+            if (smelter.GetQueueSize() < CFCMod.LowSmelterOreValue!.Value && _elapsedTime >= CFCMod.SearchInterval!.Value && smelter.GetQueueSize() <= smelter.m_maxOre)
+            {
                 foreach (var c in Patches.ContainerAwakePatch.Continers)
                 {
                     if(c == null) continue;
@@ -735,6 +801,9 @@ namespace CFC
                     
 
                 }
+
+                _elapsedTime2 = 0;
+            }
             return smelter.GetQueuedOre() == "";
         }
         

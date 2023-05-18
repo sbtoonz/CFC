@@ -20,7 +20,8 @@ namespace CFC
         #region Transpilers
 
         [HarmonyPatch(typeof(InventoryGui), nameof(InventoryGui.SetupRequirement))]
-        [HarmonyPriority(0)]
+        [HarmonyPriority(Priority.VeryHigh)]
+        [HarmonyWrapSafe]
         public static class SetupReqTranspiler
         {
             [HarmonyTranspiler]
@@ -43,7 +44,8 @@ namespace CFC
         }
         
         [HarmonyPatch(typeof(Player), nameof(Player.HaveRequirementItems), typeof(Recipe), typeof(bool), typeof(int))]
-        [HarmonyPriority(0)]
+        [HarmonyPriority(Priority.VeryHigh)]
+        [HarmonyWrapSafe]
         public static class RequirementItemsTranspiler
         {
             [HarmonyTranspiler]
@@ -66,7 +68,8 @@ namespace CFC
         }
 
         [HarmonyPatch(typeof(Player), nameof(Player.HaveRequirements), typeof(Piece), typeof(Player.RequirementMode))]
-        [HarmonyPriority(0)]
+        [HarmonyPriority(Priority.VeryHigh)]
+        [HarmonyWrapSafe]
         public static class HaveReqsTranspiler
         {
             [HarmonyTranspiler]
@@ -84,7 +87,8 @@ namespace CFC
         }
         
         [HarmonyPatch(typeof(Player), nameof(Player.ConsumeResources))]
-        [HarmonyPriority(0)]
+        [HarmonyPriority(Priority.VeryHigh)]
+        [HarmonyWrapSafe]
         public static class ConsumeResourcesTranspiler
         {
             [HarmonyTranspiler]
@@ -108,7 +112,8 @@ namespace CFC
         }
 
         [HarmonyPatch(typeof(Fireplace), nameof(Fireplace.UpdateFireplace))]
-        [HarmonyPriority(0)]
+        [HarmonyPriority(Priority.VeryHigh)]
+        [HarmonyWrapSafe]
         public static class FirePlaceFuelTranspiler
         {
             [HarmonyTranspiler]
@@ -126,7 +131,8 @@ namespace CFC
         }
 
         [HarmonyPatch(typeof(Fireplace), nameof(Fireplace.Interact))]
-        [HarmonyPriority(0)]
+        [HarmonyPriority(Priority.VeryHigh)]
+        [HarmonyWrapSafe]
         public static class FirePlaceInteractFuelTranspiler
         {
             [HarmonyTranspiler]
@@ -149,7 +155,8 @@ namespace CFC
             
         }
         [HarmonyPatch(typeof(CookingStation), nameof(CookingStation.OnInteract))]
-        [HarmonyPriority(0)]
+        [HarmonyPriority(Priority.VeryHigh)]
+        [HarmonyWrapSafe]
         public static class CookingInteractTranspiler
         {
             [HarmonyTranspiler]
@@ -171,7 +178,8 @@ namespace CFC
         }
         
         [HarmonyPatch(typeof(CookingStation), nameof(CookingStation.OnAddFuelSwitch))]
-        [HarmonyPriority(0)]
+        [HarmonyPriority(Priority.VeryHigh)]
+        [HarmonyWrapSafe]
         public static class CookingOnAddFuelTranspiler
         {
             [HarmonyTranspiler]
@@ -192,7 +200,8 @@ namespace CFC
         
         
         [HarmonyPatch(typeof(Fermenter), nameof(Fermenter.FindCookableItem))]
-        [HarmonyPriority(0)]
+        [HarmonyPriority(Priority.VeryHigh)]
+        [HarmonyWrapSafe]
         public static class FermenterInteractTranspiler
         {
             [HarmonyTranspiler]
@@ -214,7 +223,8 @@ namespace CFC
         }
         
         [HarmonyPatch(typeof(Smelter),nameof(Smelter.OnAddFuel))]
-        [HarmonyPriority(0)]
+        [HarmonyPriority(Priority.VeryHigh)]
+        [HarmonyWrapSafe]
         public static class OnSmeltFuelTranspiler
         {
             [HarmonyTranspiler]
@@ -236,7 +246,8 @@ namespace CFC
         }
         
         [HarmonyPatch(typeof(Smelter), nameof(Smelter.OnAddOre))]
-        [HarmonyPriority(0)]
+        [HarmonyPriority(Priority.VeryHigh)]
+        [HarmonyWrapSafe]
         public static class OnSmeltAddOreTranspiler
         {
             [HarmonyTranspiler]
@@ -256,7 +267,8 @@ namespace CFC
         }
 
         [HarmonyPatch(typeof(Smelter), nameof(Smelter.UpdateSmelter))]
-        [HarmonyPriority(0)]
+        [HarmonyPriority(Priority.VeryHigh)]
+        [HarmonyWrapSafe]
         public static class UpdateSmelterTranspiler
         {
             [HarmonyTranspiler]
@@ -280,7 +292,8 @@ namespace CFC
 
 
         [HarmonyPatch(typeof(Smelter), nameof(Smelter.Spawn))]
-        [HarmonyPriority(0)]
+        [HarmonyPriority(Priority.VeryHigh)]
+        [HarmonyWrapSafe]
         public static class SmelterAutoDepositTranspiler
         {
             [HarmonyTranspiler]
@@ -309,8 +322,7 @@ namespace CFC
         private static void RemoveItemsFromChests(Player player, Piece.Requirement item, int amount, int itemQuality)
         {
             var inventoryAmount = player.m_inventory.CountItems(item.m_resItem.m_itemData.m_shared.m_name);
-            if(inventoryAmount <=0)return;
-            player.m_inventory.RemoveItem(item.m_resItem.m_itemData.m_shared.m_name, amount, itemQuality);
+            if(inventoryAmount >0) player.m_inventory.RemoveItem(item.m_resItem.m_itemData.m_shared.m_name, amount, itemQuality);
             amount -= inventoryAmount;
             if (amount <= 0) return;
 

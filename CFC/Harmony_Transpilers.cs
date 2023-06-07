@@ -500,7 +500,6 @@ namespace CFC
                     inventory.RemoveOneItem(tx);
                     fermenter.m_nview.InvokeRPC("AddItem", tx.m_dropPrefab.name);
                     return tx;
-                    break;
                 case false:
                     foreach (var c in Patches.ContainerAwakePatch.Continers)
                     {

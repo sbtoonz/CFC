@@ -154,6 +154,8 @@ namespace CFC
 
             
         }
+
+        #region CookingStation
         [HarmonyPatch(typeof(CookingStation), nameof(CookingStation.OnInteract))]
         [HarmonyPriority(Priority.VeryHigh)]
         [HarmonyWrapSafe]
@@ -197,8 +199,9 @@ namespace CFC
                     .InstructionEnumeration();
             }
         }
-        
-        
+        #endregion
+
+        #region Fermenter
         [HarmonyPatch(typeof(Fermenter), nameof(Fermenter.FindCookableItem))]
         [HarmonyPriority(Priority.VeryHigh)]
         [HarmonyWrapSafe]
@@ -221,7 +224,10 @@ namespace CFC
 
             
         }
-        
+        #endregion
+
+        #region Smelter
+
         [HarmonyPatch(typeof(Smelter),nameof(Smelter.OnAddFuel))]
         [HarmonyPriority(Priority.VeryHigh)]
         [HarmonyWrapSafe]
@@ -315,14 +321,15 @@ namespace CFC
 
            
         }
-        
-       
+
+        #endregion
+
         #endregion
         #region Transpiler Methods
         private static void RemoveItemsFromChests(Player player, Piece.Requirement item, int amount, int itemQuality)
         {
             var inventoryAmount = player.m_inventory.CountItems(item.m_resItem.m_itemData.m_shared.m_name);
-            if(inventoryAmount >0) player.m_inventory.RemoveItem(item.m_resItem.m_itemData.m_shared.m_name, amount, itemQuality);
+            if(inventoryAmount >= amount) player.m_inventory.RemoveItem(item.m_resItem.m_itemData.m_shared.m_name, amount, itemQuality);
             amount -= inventoryAmount;
             if (amount <= 0) return;
 
@@ -482,24 +489,40 @@ namespace CFC
             }
             return item;
         }*/
-        private static ItemDrop.ItemData GetFermentableFromChest(Fermenter fermenter, Inventory inventory, Fermenter.ItemConversion arg3)
+        private static ItemDrop.ItemData GetFermentableFromChest(Fermenter fermenter, Inventory inventory, Fermenter.ItemConversion conversionItem)
         {
-            foreach (var c in Patches.ContainerAwakePatch.Continers)
+            switch (inventory.HaveItem(conversionItem.m_from.m_itemData.m_shared.m_name))
             {
-                if(c == null) continue;
-                if(c.m_nview == null) continue;
-                if(Player.m_localPlayer == null)break;
-                if(!CFCMod.ShouldSearchWardedAreas!.Value && c.m_privacy != Container.PrivacySetting.Public  && !c.CheckAccess(Player.m_localPlayer.GetPlayerID()) && 
-                   !PrivateArea.CheckAccess(c.transform.position, 0, false, true)) continue;
-                if(Vector3.Distance(c.transform.position, fermenter.transform.position) > CFCMod.FuelingDistance!.Value) continue;
-                if(c.m_inventory == null) continue;
-                var t = c.m_inventory.GetItem(arg3.m_from.m_itemData.m_shared.m_name);
-                if (t == null) continue;
-                if (fermenter.GetStatus() != Fermenter.Status.Empty || !fermenter.IsItemAllowed(t)) continue;
-                c.m_inventory.RemoveOneItem(t);
-                fermenter.m_nview.InvokeRPC("AddItem", t.m_dropPrefab.name);
-                return t;
-            } 
+                case true:
+                    var tx = inventory.GetItem(conversionItem.m_from.m_itemData.m_shared.m_name);
+                    if (tx == null) return null!;
+                    if (fermenter.GetStatus() != Fermenter.Status.Empty || !fermenter.IsItemAllowed(tx)) return null!;
+                    inventory.RemoveOneItem(tx);
+                    fermenter.m_nview.InvokeRPC("AddItem", tx.m_dropPrefab.name);
+                    return tx;
+                    break;
+                case false:
+                    foreach (var c in Patches.ContainerAwakePatch.Continers)
+                    {
+                        if (c == null) continue;
+                        if (c.m_nview == null) continue;
+                        if (Player.m_localPlayer == null) break;
+                        if (!CFCMod.ShouldSearchWardedAreas!.Value && c.m_privacy != Container.PrivacySetting.Public &&
+                            !c.CheckAccess(Player.m_localPlayer.GetPlayerID()) &&
+                            !PrivateArea.CheckAccess(c.transform.position, 0, false, true)) continue;
+                        if (Vector3.Distance(c.transform.position, fermenter.transform.position) >
+                            CFCMod.FuelingDistance!.Value) continue;
+                        if (c.m_inventory == null) continue;
+                        var t = c.m_inventory.GetItem(conversionItem.m_from.m_itemData.m_shared.m_name);
+                        if (t == null) continue;
+                        if (fermenter.GetStatus() != Fermenter.Status.Empty || !fermenter.IsItemAllowed(t)) continue;
+                        c.m_inventory.RemoveOneItem(t);
+                        fermenter.m_nview.InvokeRPC("AddItem", t.m_dropPrefab.name);
+                        return t;
+                    }
+                    break;
+            }
+
             return null!;
         }
 

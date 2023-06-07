@@ -12,7 +12,7 @@ namespace CFC
     public class CFCMod : BaseUnityPlugin
     {
         internal const string ModName = "CFCMod";
-        internal const string ModVersion = "1.0.8";
+        internal const string ModVersion = "1.0.9";
         private const string ModGUID = "CFCMod";
         private static Harmony harmony = null!;
 
@@ -40,6 +40,10 @@ namespace CFC
         internal static ConfigEntry<int>? LowSmelterFuelValue = null!;
         internal static ConfigEntry<int>? LowSmelterOreValue = null!;
         internal static ConfigEntry<int>? SmelterFuelDistnace = null!;
+
+        internal static ConfigEntry<bool>? AutoFuel = null!;
+        internal static ConfigEntry<bool>? AutoSmelt = null!;
+        internal static ConfigEntry<bool>? AutoDeposit = null!;
         public void Awake()
         {
             Assembly assembly = Assembly.GetExecutingAssembly();
@@ -67,6 +71,10 @@ namespace CFC
             SmelterFuelDistnace = config("2 - SmeltFromChest Distance", "Distance To Check", 15,
                 new ConfigDescription("This is how far to check chests away from players fore smelter fuel no clue why bep displays this as % its in meters",
                     new AcceptableValueRange<int>(0, 100)));
+
+
+            /*
+            AutoFuel = config("2 - FuelFromChest AutoFuel", "Should Fires Auto Fuel",true, new ConfigDescription("Set this to false to disable fires from autofueling"));*/
             configSync.AddLockingConfigEntry(ServerConfigLocked);
         }
 

@@ -559,7 +559,37 @@ namespace CFC
                                 }
                             }
                             break;
+                        case "windmill(Clone)":
+                            if (type == ChestType.Smelter)
+                            {
+                                t = smelter.FindCookableItem(c.m_inventory);
+                                if (t != null)
+                                {
+                                    if (smelter.GetQueueSize() >= smelter.m_maxOre)
+                                    {
+                                        return t;
+                                    }
+                                    c.m_inventory.RemoveOneItem(t);
+                                    return t;
+                                }
+                            }
+                            break;
                         case "blastfurnace(Clone)":
+                            if (type == ChestType.BlastFurnace)
+                            {
+                                t = smelter.FindCookableItem(c.m_inventory);
+                                if (t != null)
+                                {
+                                    if (smelter.GetQueueSize() >= smelter.m_maxOre)
+                                    {
+                                        return t;
+                                    }
+                                    c.m_inventory.RemoveOneItem(t);
+                                    return t;
+                                }
+                            }
+                            break;
+                        case "JF_KilnReimagined(Clone)":
                             if (type == ChestType.BlastFurnace)
                             {
                                 t = smelter.FindCookableItem(c.m_inventory);
@@ -667,6 +697,16 @@ namespace CFC
                                 }
                             }
                             break;
+                        case "windmill(Clone)":
+                            if (type == ChestType.Smelter)
+                            {
+                                if (c.m_inventory.HaveItem(smelter.m_fuelItem.m_itemData.m_shared.m_name))
+                                {
+                                    c.m_inventory.RemoveItem(smelter.m_fuelItem.m_itemData.m_shared.m_name, 1, -1);
+                                    return true;
+                                }
+                            }
+                            break;
                         case "blastfurnace(Clone)":
                             if (type == ChestType.BlastFurnace)
                             {
@@ -678,6 +718,16 @@ namespace CFC
                             }
                             break;
                         case "charcoal_kiln(Clone)":
+                            if (type == ChestType.Kiln)
+                            {
+                                if (c.m_inventory.HaveItem(smelter.m_fuelItem.m_itemData.m_shared.m_name))
+                                {
+                                    c.m_inventory.RemoveItem(smelter.m_fuelItem.m_itemData.m_shared.m_name, 1, -1);
+                                    return true;
+                                }
+                            }
+                            break;
+                        case "JF_KilnReimagined(Clone)":
                             if (type == ChestType.Kiln)
                             {
                                 if (c.m_inventory.HaveItem(smelter.m_fuelItem.m_itemData.m_shared.m_name))
@@ -780,6 +830,36 @@ namespace CFC
                             }
 
                             break;
+                        case "windmill(Clone)":
+                            if (type == ChestType.Smelter)
+                            {
+                                if (id != null)
+                                {
+                                    if (id.m_dropPrefab == null)
+                                    {
+                                        c.m_inventory.RemoveItem(id.m_shared.m_name, 1, -1);
+                                        smelter.m_nview.InvokeRPC("AddOre",
+                                            c.m_inventory.GetItem(id.m_shared.m_name).m_dropPrefab.name);
+                                        smelter.m_addedOreTime = Time.time;
+                                        _elapsedTime2 = 0;
+                                        return false;
+                                    }
+
+                                    if (id.m_dropPrefab != null)
+                                    {
+                                        for (int i = 0; i < smelter.m_maxOre; i++)
+                                        {
+                                            c.m_inventory.RemoveItem(id.m_shared.m_name, 1, -1);
+                                            smelter.m_nview.InvokeRPC("AddOre", id.m_dropPrefab.name);
+                                            smelter.m_addedOreTime = Time.time;
+                                        }
+                                        _elapsedTime2 = 0;
+                                        return false;
+                                    }
+                                }
+                            }
+
+                            break;
                         case "blastfurnace(Clone)":
                             if (type == ChestType.BlastFurnace)
                             {
@@ -808,7 +888,35 @@ namespace CFC
                                     }
                                 }
                             }
+                            break;
+                        case "JF_KilnReimagined(Clone)":
+                            if (type == ChestType.BlastFurnace)
+                            {
+                                if (id != null)
+                                {
+                                    if (id.m_dropPrefab == null)
+                                    {
+                                        c.m_inventory.RemoveItem(id.m_shared.m_name, 1, -1);
+                                        smelter.m_nview.InvokeRPC("AddOre",
+                                            c.m_inventory.GetItem(id.m_shared.m_name).m_dropPrefab.name);
+                                        smelter.m_addedOreTime = Time.time;
+                                        _elapsedTime2 = 0;
+                                        return false;
+                                    }
 
+                                    if (id.m_dropPrefab != null)
+                                    {
+                                        for (int i = 0; i < smelter.m_maxOre; i++)
+                                        {
+                                            c.m_inventory.RemoveItem(id.m_shared.m_name, 1, -1);
+                                            smelter.m_nview.InvokeRPC("AddOre", id.m_dropPrefab.name);
+                                            smelter.m_addedOreTime = Time.time;
+                                        }
+                                        _elapsedTime2 = 0;
+                                        return false;
+                                    }
+                                }
+                            }
                             break;
                         case "charcoal_kiln(Clone)":
                             if (type == ChestType.Kiln)
@@ -901,6 +1009,7 @@ namespace CFC
 
                             break;
                         default:
+                            
                             if (type == ChestType.None)
                             {
                                 if (id != null)
@@ -928,7 +1037,6 @@ namespace CFC
                                     }
                                 }
                             }
-
                             break;
                     }
 
@@ -971,6 +1079,16 @@ namespace CFC
                                     }
                                 }
                                 break;
+                            case "windmill(Clone)":
+                                if (type == ChestType.Smelter)
+                                {
+                                    if (c.m_inventory.HaveItem(smelter.m_fuelItem.m_itemData.m_shared.m_name))
+                                    {
+                                        c.m_inventory.RemoveItem(smelter.m_fuelItem.m_itemData.m_shared.m_name, 1, -1);
+                                        smelter.m_nview.InvokeRPC("AddFuel");
+                                    }
+                                }
+                                break;
                             case "blastfurnace(Clone)":
                                 if (type == ChestType.BlastFurnace)
                                 {
@@ -982,6 +1100,16 @@ namespace CFC
                                 }
                                 break;
                             case "charcoal_kiln(Clone)":
+                                if (type == ChestType.Kiln)
+                                {
+                                    if (c.m_inventory.HaveItem(smelter.m_fuelItem.m_itemData.m_shared.m_name))
+                                    {
+                                        c.m_inventory.RemoveItem(smelter.m_fuelItem.m_itemData.m_shared.m_name, 1, -1);
+                                        smelter.m_nview.InvokeRPC("AddFuel");
+                                    }
+                                }
+                                break;
+                            case "JF_KilnReimagined(Clone)":
                                 if (type == ChestType.Kiln)
                                 {
                                     if (c.m_inventory.HaveItem(smelter.m_fuelItem.m_itemData.m_shared.m_name))
@@ -1012,6 +1140,7 @@ namespace CFC
                                 }
                                 break;
                             default:
+                                
                                 if (type == ChestType.None)
                                 {
                                     if (c.m_inventory.HaveItem(smelter.m_fuelItem.m_itemData.m_shared.m_name))
@@ -1049,6 +1178,23 @@ namespace CFC
                 switch (smelter.gameObject.name)
                 {
                     case "smelter(Clone)":
+                        if (type == ChestType.Smelter)
+                        {
+                            int i = -1;
+                            i=c.m_inventory.FindFreeStackSpace(itemC.m_to.m_itemData.m_shared.m_name);
+                            if(c.m_inventory.HaveItem(itemC.m_to.m_itemData.m_shared.m_name) && i != -1 || c.m_inventory.HaveEmptySlot() )
+                            {
+                                c.m_inventory.AddItem(itemC.m_to.gameObject, stack);
+                                spawnedItemFromSwitch = true;
+                                break;
+                            }
+                            Object
+                                .Instantiate(itemC.m_to.gameObject, smelter.m_outputPoint.position,
+                                    smelter.m_outputPoint.rotation).GetComponent<ItemDrop>().m_itemData.m_stack = stack;
+                            spawnedItemFromSwitch = true;
+                        }
+                        break;
+                    case "windmill(Clone)":
                         if (type == ChestType.Smelter)
                         {
                             int i = -1;
@@ -1135,7 +1281,25 @@ namespace CFC
                             
                         }
                         break;
+                    case "JF_KilnReimagined(Clone)":
+                        if (type == ChestType.Kiln)
+                        {
+                            int i = -1;
+                            i=c.m_inventory.FindFreeStackSpace(itemC.m_to.m_itemData.m_shared.m_name);
+                            if(c.m_inventory.HaveItem(itemC.m_to.m_itemData.m_shared.m_name) && i != -1 || c.m_inventory.HaveEmptySlot() )
+                            {
+                                c.m_inventory.AddItem(itemC.m_to.gameObject, stack);
+                                spawnedItemFromSwitch = true;
+                                break;
+                            }
+                            spawnedItemFromSwitch = true;
+                            Object
+                                .Instantiate(itemC.m_to.gameObject, smelter.m_outputPoint.position,
+                                    smelter.m_outputPoint.rotation).GetComponent<ItemDrop>().m_itemData.m_stack = stack;
+                        }
+                        break;
                     default:
+                        
                         var o = Object
                             .Instantiate(itemC.m_to.gameObject, smelter.m_outputPoint.position,
                                 smelter.m_outputPoint.rotation).GetComponent<ItemDrop>().m_itemData.m_stack = stack;

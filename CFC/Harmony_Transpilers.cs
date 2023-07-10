@@ -894,7 +894,7 @@ namespace CFC
 
             if (smelter.GetFuel() < CFCMod.LowSmelterFuelValue!.Value) return smelter.GetFuel();
             
-            if (smelter.GetFuel() > CFCMod.LowSmelterFuelValue!.Value)
+            if (smelter.GetFuel() > CFCMod.LowSmelterFuelValue!.Value || smelter.GetFuel() == 0)
             {
                 foreach (var container in Patches.ContainerAwakePatch.Continers)
                 {

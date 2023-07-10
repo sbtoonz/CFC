@@ -12,7 +12,7 @@ namespace CFC
     public class CFCMod : BaseUnityPlugin
     {
         internal const string ModName = "CFCMod";
-        internal const string ModVersion = "1.0.9";
+        internal const string ModVersion = "1.1.0";
         private const string ModGUID = "CFCMod";
         private static Harmony harmony = null!;
 
@@ -74,13 +74,14 @@ namespace CFC
 
 
             
-            AutoFuel = config("2 - FuelFromChest AutoFuel", "Should Fires Auto Fuel",true, new ConfigDescription("Set this to false to disable fires from autofueling"));
+            /*AutoFuel = config("2 - FuelFromChest AutoFuel", "Should Fires Auto Fuel",true, new ConfigDescription("Set this to false to disable fires from autofueling"));
             AutoSmelt = config("2 - SmeltFromChest", "Should Smelters auto grab smelting materials from chests", true,
                 new ConfigDescription(
                     "This toggle turns on/off the smelters seeking resources from chests. Is true by default"));
             AutoDeposit = config("2 - AutoDepositToChest", "Should things auto deposit", true,
                 new ConfigDescription(
                     "This toggle enables automatic depositing into chests for production stations such as refineries and smelters and kilns"));
+                    */
             
             configSync.AddLockingConfigEntry(ServerConfigLocked);
         }

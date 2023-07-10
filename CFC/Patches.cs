@@ -22,7 +22,7 @@ namespace CFC
                 if (__instance.m_nview != null)
                 {
                     if(__instance.m_nview.GetZDO() != null && __instance.m_nview.GetZDO().GetInt("ChestType") <= 0)
-                        __instance.m_nview.GetZDO().Set("ChestType", 7);
+                        __instance.m_nview.GetZDO().Set("ChestType", 9);
                 }
             }
         }

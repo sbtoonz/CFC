@@ -8,11 +8,12 @@ using ServerSync;
 namespace CFC
 {
     [BepInPlugin(ModGUID, ModName, ModVersion)]
-    [BepInDependency("", BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency("randyknapp.mods.epicloot", BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency("vapok.mods.adventurebackpacks", BepInDependency.DependencyFlags.SoftDependency)]
     public class CFCMod : BaseUnityPlugin
     {
         internal const string ModName = "CFCMod";
-        internal const string ModVersion = "1.1.0";
+        internal const string ModVersion = "1.1.2";
         private const string ModGUID = "CFCMod";
         private static Harmony harmony = null!;
 

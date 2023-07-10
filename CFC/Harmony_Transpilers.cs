@@ -394,7 +394,7 @@ namespace CFC
         {
             _elapsedTime += Time.deltaTime;
             var currentZdoFuel = Mathf.CeilToInt(fireplace.m_nview.GetZDO().GetFloat("fuel"));
-            if (currentZdoFuel >= CFCMod.LowFuelValue!.Value || _elapsedTime <= CFCMod.SearchInterval!.Value) return;
+            if (currentZdoFuel < CFCMod.LowFuelValue!.Value || _elapsedTime <= CFCMod.SearchInterval!.Value) return;
             foreach (var c in Patches.ContainerAwakePatch.Continers)
             {
                 if(c == null) continue;

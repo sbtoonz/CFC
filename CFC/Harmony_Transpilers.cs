@@ -797,7 +797,7 @@ namespace CFC
                 if (container.m_inventory == null) continue;
                 var id = smelter.FindCookableItem(container.m_inventory);
                 var type = (ChestType)container.m_nview.GetZDO().GetInt("ChestType");
-                if (type != ChestType.Smelter) continue;
+                if (type is not (ChestType.Smelter or ChestType.EitrRefinery or ChestType.BlastFurnace or ChestType.SapCollector or ChestType.Kiln)) continue;
                 if (id == null) continue;
                 var countItems = container.m_inventory.CountItems(id.m_shared.m_name);
                 if(countItems <=0)continue;

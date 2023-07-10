@@ -797,7 +797,13 @@ namespace CFC
                 if (container.m_inventory == null) continue;
                 var id = smelter.FindCookableItem(container.m_inventory);
                 var type = (ChestType)container.m_nview.GetZDO().GetInt("ChestType");
-                if (type is not (ChestType.Smelter or ChestType.EitrRefinery or ChestType.BlastFurnace or ChestType.SapCollector or ChestType.Kiln)) continue;
+                if (type is not (ChestType.Smelter 
+                    or ChestType.EitrRefinery 
+                    or ChestType.BlastFurnace 
+                    or ChestType.SapCollector 
+                    or ChestType.Kiln
+                    or ChestType.Windmill
+                    or ChestType.SpinningWheel)) continue;
                 if (id == null) continue;
                 var countItems = container.m_inventory.CountItems(id.m_shared.m_name);
                 if(countItems <=0)continue;
@@ -849,7 +855,17 @@ namespace CFC
                                 }
                                 break;
                             case "windmill(Clone)":
-                                if (type == ChestType.Smelter)
+                                if (type == ChestType.Windmill)
+                                {
+                                    if (container.m_inventory.HaveItem(smelter.m_fuelItem.m_itemData.m_shared.m_name))
+                                    {
+                                        container.m_inventory.RemoveItem(smelter.m_fuelItem.m_itemData.m_shared.m_name, 1, -1);
+                                        smelter.m_nview.InvokeRPC("AddFuel");
+                                    }
+                                }
+                                break;
+                            case "piece_spinningwheel(Clone)":
+                                if (type == ChestType.SpinningWheel)
                                 {
                                     if (container.m_inventory.HaveItem(smelter.m_fuelItem.m_itemData.m_shared.m_name))
                                     {
@@ -964,7 +980,24 @@ namespace CFC
                         }
                         break;
                     case "windmill(Clone)":
-                        if (type == ChestType.Smelter)
+                        if (type == ChestType.Windmill)
+                        {
+                            int i = -1;
+                            i=c.m_inventory.FindFreeStackSpace(itemC.m_to.m_itemData.m_shared.m_name);
+                            if(c.m_inventory.HaveItem(itemC.m_to.m_itemData.m_shared.m_name) && i != -1 || c.m_inventory.HaveEmptySlot() )
+                            {
+                                c.m_inventory.AddItem(itemC.m_to.gameObject, stack);
+                                spawnedItemFromSwitch = true;
+                                break;
+                            }
+                            Object
+                                .Instantiate(itemC.m_to.gameObject, smelter.m_outputPoint.position,
+                                    smelter.m_outputPoint.rotation).GetComponent<ItemDrop>().m_itemData.m_stack = stack;
+                            spawnedItemFromSwitch = true;
+                        }
+                        break;
+                    case "piece_spinningwheel(Clone)":
+                        if (type == ChestType.SpinningWheel)
                         {
                             int i = -1;
                             i=c.m_inventory.FindFreeStackSpace(itemC.m_to.m_itemData.m_shared.m_name);
@@ -1068,10 +1101,22 @@ namespace CFC
                         }
                         break;
                     default:
-                        
+                        if (type == ChestType.None)
+                        {
+                            int i = -1;
+                            i = c.m_inventory.FindFreeStackSpace(itemC.m_to.m_itemData.m_shared.m_name);
+                            if (c.m_inventory.HaveItem(itemC.m_to.m_itemData.m_shared.m_name) && i != -1 ||
+                                c.m_inventory.HaveEmptySlot())
+                            {
+                                c.m_inventory.AddItem(itemC.m_to.gameObject, stack);
+                                spawnedItemFromSwitch = true;
+                                break;
+                            }
+                        }
                         var o = Object
                             .Instantiate(itemC.m_to.gameObject, smelter.m_outputPoint.position,
                                 smelter.m_outputPoint.rotation).GetComponent<ItemDrop>().m_itemData.m_stack = stack;
+                        spawnedItemFromSwitch = true;
                         break;
                 }
             } 

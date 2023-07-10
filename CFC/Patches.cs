@@ -57,7 +57,7 @@ namespace CFC
                 {
                     var i = __instance.m_nview.GetZDO().GetInt("ChestType");
                     ++i;
-                    if(i >7)
+                    if(i >9)
                         i=1;
                     __instance.m_nview.GetZDO().Set("ChestType", i);
                     return false;
@@ -77,6 +77,8 @@ namespace CFC
         Fire = 4,
         SapCollector = 5,
         EitrRefinery = 6,
-        None = 7
+        Windmill =7,
+        SpinningWheel =8,
+        None = 9
     }
 }

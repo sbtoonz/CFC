@@ -1,24 +1,20 @@
-﻿using System;
-using System.Collections.Generic;
-using HarmonyLib;
+﻿using HarmonyLib;
 using UnityEngine;
 
 namespace CFC
 {
-    public static class Patches
+    public class ItemDrawer_Patches
     {
-        [HarmonyPatch(typeof(Container), nameof(Container.Awake))]
-        [HarmonyPriority(0)]
-        public static class ContainerAwakePatch
+        [HarmonyPatch(typeof(DrawerContainer), nameof(DrawerContainer.Awake))]
+        public static class DrawerAwakePatch
         {
-            public static readonly List<Container> Continers = new List<Container>();
             public static void Postfix(Container __instance)
             {
                 if(Player.m_localPlayer != null)
                 {
                     if (Player.m_localPlayer.m_placementGhost == __instance.gameObject) return;
                 }
-                if(!Continers.Contains(__instance))Continers.Add(__instance);
+                if(!Patches.ContainerAwakePatch.Continers.Contains(__instance))Patches.ContainerAwakePatch.Continers.Add(__instance);
                 if (__instance.m_nview != null)
                 {
                     if(__instance.m_nview.GetZDO() != null && __instance.m_nview.GetZDO().GetInt("ChestType") <= 0)
@@ -27,20 +23,19 @@ namespace CFC
             }
         }
 
-        [HarmonyPatch(typeof(Container), nameof(Container.OnDestroyed))]
-        [HarmonyPriority(0)]
-        public static class ContainerDestroyPatch
+        [HarmonyPatch(typeof(DrawerContainer), nameof(DrawerContainer.OnDestroyed))]
+        public static class DrawerDestroyPatch
         {
-            public static void Prefix(Container __instance)
+            public static void Prefix(DrawerContainer __instance)
             {
-                if (ContainerAwakePatch.Continers.Contains(__instance)) ContainerAwakePatch.Continers.Remove(__instance);
+                if (Patches.ContainerAwakePatch.Continers.Contains(__instance)) Patches.ContainerAwakePatch.Continers.Remove(__instance);
             }
         }
 
-        [HarmonyPatch(typeof(Container), nameof(Container.GetHoverText))]
-        public static class ContainerHoverTextPostfix
+        [HarmonyPatch(typeof(DrawerContainer), nameof(DrawerContainer.GetHoverText))]
+        public static class DrawerHoverTextPatch
         {
-            public static void Postfix(Container __instance, ref string __result)
+            public static void Postfix(DrawerContainer __instance, ref string __result)
             {
                 ChestType type = (ChestType)__instance.m_nview.GetZDO().GetInt("ChestType");
                 __result += Localization.instance.Localize("<br><b><color=yellow>[L-Ctrl + $KEY_Use</color></b>] To Set Chest Type" +
@@ -48,10 +43,10 @@ namespace CFC
             }
         }
 
-        [HarmonyPatch(typeof(Container), nameof(Container.Interact))]
-        public static class ContainerSetTypePatch
+        [HarmonyPatch(typeof(DrawerContainer), nameof(DrawerContainer.Interact))]
+        public static class DrawerInteractPatch
         {
-            public static bool Prefix(Container __instance)
+            public static bool Prefix(DrawerContainer __instance)
             {
                 if (Input.GetKey(KeyCode.LeftControl))
                 {
@@ -66,19 +61,5 @@ namespace CFC
                 return true;
             }
         }
-        
-    }
-
-    public enum ChestType : byte
-    {
-        Kiln = 1,
-        BlastFurnace = 2,
-        Smelter = 3,
-        Fire = 4,
-        SapCollector = 5,
-        EitrRefinery = 6,
-        Windmill =7,
-        SpinningWheel =8,
-        None = 9
     }
 }

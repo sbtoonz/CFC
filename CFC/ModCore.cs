@@ -1,19 +1,20 @@
 ﻿using System;
 using System.Reflection;
 using BepInEx;
+using BepInEx.Bootstrap;
 using BepInEx.Configuration;
 using HarmonyLib;
 using ServerSync;
-
 namespace CFC
 {
     [BepInPlugin(ModGUID, ModName, ModVersion)]
     [BepInDependency("randyknapp.mods.epicloot", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("vapok.mods.adventurebackpacks", BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency("com.zarboz.drawers", BepInDependency.DependencyFlags.SoftDependency)]
     public class CFCMod : BaseUnityPlugin
     {
         internal const string ModName = "CFCMod";
-        internal const string ModVersion = "1.1.2";
+        internal const string ModVersion = "1.1.4";
         private const string ModGUID = "CFCMod";
         private static Harmony harmony = null!;
 
@@ -45,11 +46,29 @@ namespace CFC
         internal static ConfigEntry<bool>? AutoFuel = null!;
         internal static ConfigEntry<bool>? AutoSmelt = null!;
         internal static ConfigEntry<bool>? AutoDeposit = null!;
+
+        internal static bool hasItemDrawerRemake = false;
         public void Awake()
         {
             Assembly assembly = Assembly.GetExecutingAssembly();
             harmony = new(ModGUID);
-            harmony.PatchAll(assembly);
+            harmony.PatchAll(typeof(Patches.ContainerAwakePatch));
+            harmony.PatchAll(typeof(Patches.ContainerDestroyPatch));
+            harmony.PatchAll(typeof(Patches.ContainerSetTypePatch));
+            harmony.PatchAll(typeof(Patches.ContainerHoverTextPostfix));
+            harmony.PatchAll(typeof(HarmonyTranspilers.SetupReqTranspiler));
+            harmony.PatchAll(typeof(HarmonyTranspilers.RequirementItemsTranspiler));
+            harmony.PatchAll(typeof(HarmonyTranspilers.HaveReqsTranspiler));
+            harmony.PatchAll(typeof(HarmonyTranspilers.ConsumeResourcesTranspiler));
+            harmony.PatchAll(typeof(HarmonyTranspilers.FirePlaceFuelTranspiler));
+            harmony.PatchAll(typeof(HarmonyTranspilers.FirePlaceInteractFuelTranspiler));
+            harmony.PatchAll(typeof(HarmonyTranspilers.CookingOnAddFuelTranspiler));
+            harmony.PatchAll(typeof(HarmonyTranspilers.CookingInteractTranspiler));
+            harmony.PatchAll(typeof(HarmonyTranspilers.FermenterInteractTranspiler));
+            harmony.PatchAll(typeof(HarmonyTranspilers.SmelterAutoDepositTranspiler));
+            harmony.PatchAll(typeof(HarmonyTranspilers.UpdateSmelterTranspiler));
+            harmony.PatchAll(typeof(HarmonyTranspilers.OnSmeltFuelTranspiler));
+            harmony.PatchAll(typeof(HarmonyTranspilers.OnSmeltAddOreTranspiler));
             ServerConfigLocked = config("1 - General", "Lock Configuration", true, "If on, the configuration is locked and can be changed by server admins only.");
             ChestDistance = config("2 - CraftFromChest", "Distance To Check", 15,
                 new ConfigDescription("This is how far to check chests away from players no clue why bep displays this as % its in meters",
@@ -85,6 +104,18 @@ namespace CFC
                     */
             
             configSync.AddLockingConfigEntry(ServerConfigLocked);
+            foreach (var kp in Chainloader.PluginInfos)
+            {
+                if (kp.Key == "com.zarboz.drawers") hasItemDrawerRemake = true;
+            }
+
+            if (hasItemDrawerRemake)
+            {
+                harmony.PatchAll(typeof(ItemDrawer_Patches.DrawerDestroyPatch));
+                harmony.PatchAll(typeof(ItemDrawer_Patches.DrawerInteractPatch));
+                harmony.PatchAll(typeof(ItemDrawer_Patches.DrawerAwakePatch));
+                harmony.PatchAll(typeof(ItemDrawer_Patches.DrawerHoverTextPatch));
+            }
         }
 
         private void OnDestroy()

@@ -67,6 +67,9 @@
     <Reference Include="BepInEx">
       <HintPath>$(GamePath)\BepInEx\core\BepInEx.dll</HintPath>
     </Reference>
+    <Reference Include="ItemDrawers_Remake">
+      <HintPath>..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Valheim\BepInEx\plugins\ItemDrawers_Remake.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Data" />
@@ -92,6 +95,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Harmony_Transpilers.cs" />
+    <Compile Include="ItemDrawer_Patches.cs" />
     <Compile Include="ModCore.cs" />
     <Compile Include="Patches.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

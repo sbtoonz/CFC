@@ -355,6 +355,16 @@ namespace CFC
             foreach (var c in Patches.ContainerAwakePatch.Continers)
             {
                 if(c == null ||item == null || player ==null) continue;
+                if (c.gameObject.name.StartsWith("Container_"))
+                {
+                    if (Vector3.Distance(player.transform.position, c.transform.position) >
+                        CFCMod.ChestDistance?.Value) continue;
+                    if(c.m_inventory == null) continue;
+                    if (c.m_inventory.HaveItem(item.m_resItem.m_itemData.m_shared.m_name))
+                    {
+                        i += c.m_inventory.CountItems(item.m_resItem.m_itemData.m_shared.m_name);
+                    }
+                }
                 if(c.m_nview == null) continue;
                 if (c.m_piece == null || c.m_piece.m_creator == -1) continue;
                 if(!CFCMod.ShouldSearchWardedAreas!.Value && c.m_privacy != Container.PrivacySetting.Public  && !c.CheckAccess(player.GetPlayerID()) && !PrivateArea.CheckAccess(c.transform.position, 0, false, true)) continue;
@@ -781,9 +791,8 @@ namespace CFC
             _elapsedTime2 += Time.deltaTime;
             var q = smelter.GetQueueSize();
             if(q >= smelter.m_maxOre)return smelter.GetQueuedOre() == "";
-            if(q > CFCMod.LowSmelterOreValue!.Value)return smelter.GetQueuedOre() == "";
+            if(q <= CFCMod.LowSmelterOreValue!.Value)return smelter.GetQueuedOre() == "";
             if(_elapsedTime2 <= CFCMod.SearchInterval!.Value)return smelter.GetQueuedOre() == "";
-            if (q > CFCMod.LowSmelterOreValue!.Value) return smelter.GetQueuedOre() == "";
             foreach (var container in Patches.ContainerAwakePatch.Continers)
             {
                 if (container == null) continue;
@@ -892,7 +901,7 @@ namespace CFC
         {
             int toAdd = smelter.m_maxFuel - Mathf.CeilToInt(smelter.GetFuel());
 
-            if (smelter.GetFuel() < CFCMod.LowSmelterFuelValue!.Value) return smelter.GetFuel();
+            if (smelter.GetFuel() <= CFCMod.LowSmelterFuelValue!.Value) return smelter.GetFuel();
             
             if (smelter.GetFuel() > CFCMod.LowSmelterFuelValue!.Value || smelter.GetFuel() == 0)
             {

@@ -67,6 +67,12 @@
     <Reference Include="BepInEx">
       <HintPath>$(GamePath)\BepInEx\core\BepInEx.dll</HintPath>
     </Reference>
+    <Reference Include="EpicLoot">
+      <HintPath>..\libs\EpicLoot.dll</HintPath>
+    </Reference>
+    <Reference Include="EpicLoot-UnityLib">
+      <HintPath>..\libs\EpicLoot.EpicLoot-UnityLib.dll</HintPath>
+    </Reference>
     <Reference Include="ItemDrawers_Remake">
       <HintPath>..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Valheim\BepInEx\plugins\ItemDrawers_Remake.dll</HintPath>
     </Reference>
@@ -94,6 +100,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="EpicLoot_Patches.cs" />
     <Compile Include="Harmony_Transpilers.cs" />
     <Compile Include="ItemDrawer_Patches.cs" />
     <Compile Include="ModCore.cs" />

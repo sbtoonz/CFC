@@ -48,6 +48,7 @@ namespace CFC
         internal static ConfigEntry<bool>? AutoDeposit = null!;
 
         internal static bool hasItemDrawerRemake = false;
+        internal static bool hasEpicLoot = false;
         public void Awake()
         {
             Assembly assembly = Assembly.GetExecutingAssembly();
@@ -62,13 +63,13 @@ namespace CFC
             harmony.PatchAll(typeof(HarmonyTranspilers.ConsumeResourcesTranspiler));
             harmony.PatchAll(typeof(HarmonyTranspilers.FirePlaceFuelTranspiler));
             harmony.PatchAll(typeof(HarmonyTranspilers.FirePlaceInteractFuelTranspiler));
-            harmony.PatchAll(typeof(HarmonyTranspilers.CookingOnAddFuelTranspiler));
-            harmony.PatchAll(typeof(HarmonyTranspilers.CookingInteractTranspiler));
-            harmony.PatchAll(typeof(HarmonyTranspilers.FermenterInteractTranspiler));
-            harmony.PatchAll(typeof(HarmonyTranspilers.SmelterAutoDepositTranspiler));
-            harmony.PatchAll(typeof(HarmonyTranspilers.UpdateSmelterTranspiler));
-            harmony.PatchAll(typeof(HarmonyTranspilers.OnSmeltFuelTranspiler));
-            harmony.PatchAll(typeof(HarmonyTranspilers.OnSmeltAddOreTranspiler));
+            //harmony.PatchAll(typeof(HarmonyTranspilers.CookingOnAddFuelTranspiler));
+            //harmony.PatchAll(typeof(HarmonyTranspilers.CookingInteractTranspiler));
+            //harmony.PatchAll(typeof(HarmonyTranspilers.FermenterInteractTranspiler));
+            //harmony.PatchAll(typeof(HarmonyTranspilers.SmelterAutoDepositTranspiler));
+            //harmony.PatchAll(typeof(HarmonyTranspilers.UpdateSmelterTranspiler));
+            //harmony.PatchAll(typeof(HarmonyTranspilers.OnSmeltFuelTranspiler));
+            //harmony.PatchAll(typeof(HarmonyTranspilers.OnSmeltAddOreTranspiler));
             ServerConfigLocked = config("1 - General", "Lock Configuration", true, "If on, the configuration is locked and can be changed by server admins only.");
             ChestDistance = config("2 - CraftFromChest", "Distance To Check", 15,
                 new ConfigDescription("This is how far to check chests away from players no clue why bep displays this as % its in meters",
@@ -107,6 +108,7 @@ namespace CFC
             foreach (var kp in Chainloader.PluginInfos)
             {
                 if (kp.Key == "com.zarboz.drawers") hasItemDrawerRemake = true;
+                if (kp.Key == "randyknapp.mods.epicloot") hasEpicLoot = true;
             }
 
             if (hasItemDrawerRemake)
@@ -115,6 +117,10 @@ namespace CFC
                 harmony.PatchAll(typeof(ItemDrawer_Patches.DrawerInteractPatch));
                 harmony.PatchAll(typeof(ItemDrawer_Patches.DrawerAwakePatch));
                 harmony.PatchAll(typeof(ItemDrawer_Patches.DrawerHoverTextPatch));
+            }
+
+            if (hasEpicLoot)
+            {
             }
         }
 

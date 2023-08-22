@@ -101,7 +101,7 @@ namespace CFC
                         new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(Humanoid), nameof(Humanoid.m_inventory))),
                         new CodeMatch(OpCodes.Ldloc_2))
                     .Advance(1)
-                    .RemoveInstructions(9)
+                    .RemoveInstructions(10)
                     .InsertAndAdvance(new CodeInstruction(OpCodes.Ldloc_2))
                     .InsertAndAdvance(new CodeInstruction(OpCodes.Ldloc_3))
                     .InsertAndAdvance(new CodeInstruction(OpCodes.Ldarg_3))
@@ -146,7 +146,7 @@ namespace CFC
                     .RemoveInstruction()
                     .InsertAndAdvance(new CodeInstruction(OpCodes.Ldloca, 0))
                     .Advance(3)
-                    .RemoveInstructions(3)
+                    .RemoveInstructions(4)
                     .InsertAndAdvance(new CodeInstruction(OpCodes.Ldarg_0))
                     .InsertAndAdvance(new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(HarmonyTranspilers), nameof(RemoveFuelFromChest))))
                     .InstructionEnumeration();
@@ -404,7 +404,7 @@ namespace CFC
         {
             _elapsedTime += Time.deltaTime;
             var currentZdoFuel = Mathf.CeilToInt(fireplace.m_nview.GetZDO().GetFloat("fuel"));
-            if (currentZdoFuel < CFCMod.LowFuelValue!.Value || _elapsedTime <= CFCMod.SearchInterval!.Value) return;
+            if (currentZdoFuel <= CFCMod.LowFuelValue!.Value || _elapsedTime <= CFCMod.SearchInterval!.Value) return;
             foreach (var c in Patches.ContainerAwakePatch.Continers)
             {
                 if(c == null) continue;
@@ -1041,7 +1041,7 @@ namespace CFC
                         if (type == ChestType.Smelter)
                         {
                             int i = -1;
-                            i=c.m_inventory.FindFreeStackSpace(itemC.m_to.m_itemData.m_shared.m_name);
+                            i=c.m_inventory.FindFreeStackSpace(itemC.m_to.m_itemData.m_shared.m_name,0);
                             if(c.m_inventory.HaveItem(itemC.m_to.m_itemData.m_shared.m_name) && i != -1 || c.m_inventory.HaveEmptySlot() )
                             {
                                 c.m_inventory.AddItem(itemC.m_to.gameObject, stack);
@@ -1058,7 +1058,7 @@ namespace CFC
                         if (type == ChestType.Windmill)
                         {
                             int i = -1;
-                            i=c.m_inventory.FindFreeStackSpace(itemC.m_to.m_itemData.m_shared.m_name);
+                            i=c.m_inventory.FindFreeStackSpace(itemC.m_to.m_itemData.m_shared.m_name,0);
                             if(c.m_inventory.HaveItem(itemC.m_to.m_itemData.m_shared.m_name) && i != -1 || c.m_inventory.HaveEmptySlot() )
                             {
                                 c.m_inventory.AddItem(itemC.m_to.gameObject, stack);
@@ -1075,7 +1075,7 @@ namespace CFC
                         if (type == ChestType.SpinningWheel)
                         {
                             int i = -1;
-                            i=c.m_inventory.FindFreeStackSpace(itemC.m_to.m_itemData.m_shared.m_name);
+                            i=c.m_inventory.FindFreeStackSpace(itemC.m_to.m_itemData.m_shared.m_name,0);
                             if(c.m_inventory.HaveItem(itemC.m_to.m_itemData.m_shared.m_name) && i != -1 || c.m_inventory.HaveEmptySlot() )
                             {
                                 c.m_inventory.AddItem(itemC.m_to.gameObject, stack);
@@ -1092,7 +1092,7 @@ namespace CFC
                         if (type == ChestType.BlastFurnace)
                         {
                             int i = -1;
-                            i=c.m_inventory.FindFreeStackSpace(itemC.m_to.m_itemData.m_shared.m_name);
+                            i=c.m_inventory.FindFreeStackSpace(itemC.m_to.m_itemData.m_shared.m_name,0);
                             if(c.m_inventory.HaveItem(itemC.m_to.m_itemData.m_shared.m_name) && i != -1 || c.m_inventory.HaveEmptySlot() )
                             {
                                 c.m_inventory.AddItem(itemC.m_to.gameObject, stack);
@@ -1109,7 +1109,7 @@ namespace CFC
                         if (type == ChestType.Kiln)
                         {
                             int i = -1;
-                            i=c.m_inventory.FindFreeStackSpace(itemC.m_to.m_itemData.m_shared.m_name);
+                            i=c.m_inventory.FindFreeStackSpace(itemC.m_to.m_itemData.m_shared.m_name,0);
                             if(c.m_inventory.HaveItem(itemC.m_to.m_itemData.m_shared.m_name) && i != -1 || c.m_inventory.HaveEmptySlot() )
                             {
                                 c.m_inventory.AddItem(itemC.m_to.gameObject, stack);
@@ -1126,7 +1126,7 @@ namespace CFC
                         if (type == ChestType.SapCollector)
                         {
                             int i = -1;
-                            i=c.m_inventory.FindFreeStackSpace(itemC.m_to.m_itemData.m_shared.m_name);
+                            i=c.m_inventory.FindFreeStackSpace(itemC.m_to.m_itemData.m_shared.m_name,0);
                             if(c.m_inventory.HaveItem(itemC.m_to.m_itemData.m_shared.m_name) && i != -1 || c.m_inventory.HaveEmptySlot() )
                             {
                                 c.m_inventory.AddItem(itemC.m_to.gameObject, stack);
@@ -1144,7 +1144,7 @@ namespace CFC
                         if (type == ChestType.EitrRefinery)
                         {
                             int i = -1;
-                            i=c.m_inventory.FindFreeStackSpace(itemC.m_to.m_itemData.m_shared.m_name);
+                            i=c.m_inventory.FindFreeStackSpace(itemC.m_to.m_itemData.m_shared.m_name,0);
                             if(c.m_inventory.HaveItem(itemC.m_to.m_itemData.m_shared.m_name) && i != -1 || c.m_inventory.HaveEmptySlot() )
                             {
                                 c.m_inventory.AddItem(itemC.m_to.gameObject, stack);
@@ -1162,7 +1162,7 @@ namespace CFC
                         if (type == ChestType.Kiln)
                         {
                             int i = -1;
-                            i=c.m_inventory.FindFreeStackSpace(itemC.m_to.m_itemData.m_shared.m_name);
+                            i=c.m_inventory.FindFreeStackSpace(itemC.m_to.m_itemData.m_shared.m_name,0);
                             if(c.m_inventory.HaveItem(itemC.m_to.m_itemData.m_shared.m_name) && i != -1 || c.m_inventory.HaveEmptySlot() )
                             {
                                 c.m_inventory.AddItem(itemC.m_to.gameObject, stack);
@@ -1179,7 +1179,7 @@ namespace CFC
                         if (type == ChestType.None)
                         {
                             int i = -1;
-                            i = c.m_inventory.FindFreeStackSpace(itemC.m_to.m_itemData.m_shared.m_name);
+                            i = c.m_inventory.FindFreeStackSpace(itemC.m_to.m_itemData.m_shared.m_name,0);
                             if (c.m_inventory.HaveItem(itemC.m_to.m_itemData.m_shared.m_name) && i != -1 ||
                                 c.m_inventory.HaveEmptySlot())
                             {

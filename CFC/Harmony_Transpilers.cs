@@ -138,23 +138,31 @@ namespace CFC
             [HarmonyTranspiler]
             public static IEnumerable<CodeInstruction> FireInteractFuel(IEnumerable<CodeInstruction> instructions)
             {
-                return new CodeMatcher(instructions)
+                /*return new CodeMatcher(instructions)
                     .MatchForward(useEnd: false,
                         new CodeMatch(OpCodes.Ldloc_0),
                         new CodeMatch(OpCodes.Ldarg_0),
                         new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(Fireplace), nameof(Fireplace.m_fuelItem))))
+                    .Advance(3)
+                    .RemoveInstructions(5)
+                    .InsertAndAdvance(new CodeInstruction(OpCodes.Ldarg_0))
+                    //.InsertAndAdvance(Transpilers.EmitDelegate<Func<Inventory, ItemDrop.ItemData, Fireplace, bool>>(RemoveFuelFromChest))
+                    .InsertAndAdvance(new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(HarmonyTranspilers), nameof(RemoveFuelFromChest))))
+                    .InstructionEnumeration();*/
+                return new CodeMatcher(instructions)
+                    .MatchForward(useEnd: false,
+                        new CodeMatch(OpCodes.Ldarg_1),
+                        new CodeMatch(OpCodes.Callvirt, AccessTools.Method(typeof(Humanoid), nameof(Humanoid.GetInventory))),
+                        new CodeMatch(OpCodes.Stloc_0)
+                        ) 
                     .Advance(1)
                     .RemoveInstruction()
-                    .InsertAndAdvance(new CodeInstruction(OpCodes.Ldloca, 0))
-                    .Advance(3)
-                    .RemoveInstructions(3)
                     .InsertAndAdvance(new CodeInstruction(OpCodes.Ldarg_0))
-                    .InsertAndAdvance(Transpilers.EmitDelegate<Func<Inventory, ItemDrop.ItemData, Fireplace, bool>>(RemoveFuelFromChest))
-                    //.InsertAndAdvance(new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(HarmonyTranspilers), nameof(RemoveFuelFromChest))))
+                    .InsertAndAdvance(Transpilers.EmitDelegate<Func<Inventory?, Fireplace, Inventory>>(GetAllInventory))
+                    //.InsertAndAdvance(new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(HarmonyTranspilers), nameof(GetAllInventory))))
                     .InstructionEnumeration();
-            }
 
-            
+            }
         }
 
         #region CookingStation
@@ -381,7 +389,31 @@ namespace CFC
             i += fromInventory;
             return i;
         }
-        private static bool RemoveFuelFromChest(Inventory inventory, ItemDrop.ItemData itemData, Fireplace fireplace)
+        
+        private static Inventory? GetAllInventory(Inventory? inventory, Fireplace fireplace)
+        {
+            if (Player.m_localPlayer != null &&
+                Player.m_localPlayer.m_inventory.m_inventory.Find(x => x.m_shared.m_name == fireplace.m_name) != null)
+                return Player.m_localPlayer.m_inventory;
+            foreach (var c in Patches.ContainerAwakePatch.Continers)
+            {
+                if (Player.m_localPlayer == null) break;
+                if(!CFCMod.ShouldSearchWardedAreas!.Value && c.m_privacy != Container.PrivacySetting.Public  && !c.CheckAccess(Player.m_localPlayer.GetPlayerID()) && !PrivateArea.CheckAccess(c.transform.position, 0, false, true)) continue;
+                if(Vector3.Distance(c.transform.position, fireplace.transform.position) > CFCMod.FuelingDistance!.Value)continue;
+                if(c.m_inventory == null) continue;
+                if(c.m_nview == null) continue;
+                var t = (ChestType)c.m_nview.GetZDO().GetInt("ChestType");
+                if(t != ChestType.Fire) continue;
+                if (c.m_inventory.HaveItem(fireplace.m_fuelItem.m_itemData.m_shared.m_name))
+                {
+                    return c.m_inventory;
+                }
+            }
+            Player.m_localPlayer!.Message(MessageHud.MessageType.Center, "$msg_outof " + fireplace.m_fuelItem.m_itemData.m_shared.m_name);
+            return  null;
+        }
+        
+        private static bool RemoveFuelFromChest(ref Inventory inventory, ItemDrop.ItemData itemData, Fireplace fireplace)
         {
             if (inventory.HaveItem(itemData.m_shared.m_name)) return true;
             foreach (var c in Patches.ContainerAwakePatch.Continers)

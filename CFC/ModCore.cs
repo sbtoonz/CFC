@@ -62,7 +62,7 @@ namespace CFC
             harmony.PatchAll(typeof(HarmonyTranspilers.HaveReqsTranspiler));
             harmony.PatchAll(typeof(HarmonyTranspilers.ConsumeResourcesTranspiler));
             harmony.PatchAll(typeof(HarmonyTranspilers.FirePlaceFuelTranspiler));
-            //harmony.PatchAll(typeof(HarmonyTranspilers.FirePlaceInteractFuelTranspiler));
+            harmony.PatchAll(typeof(HarmonyTranspilers.FirePlaceInteractFuelTranspiler));
             harmony.PatchAll(typeof(HarmonyTranspilers.CookingOnAddFuelTranspiler));
             harmony.PatchAll(typeof(HarmonyTranspilers.CookingInteractTranspiler));
             harmony.PatchAll(typeof(HarmonyTranspilers.FermenterInteractTranspiler));

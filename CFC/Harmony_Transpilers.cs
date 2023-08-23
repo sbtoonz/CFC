@@ -143,12 +143,14 @@ namespace CFC
                         new CodeMatch(OpCodes.Ldloc_0),
                         new CodeMatch(OpCodes.Ldarg_0),
                         new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(Fireplace), nameof(Fireplace.m_fuelItem))))
+                    .Advance(1)
                     .RemoveInstruction()
                     .InsertAndAdvance(new CodeInstruction(OpCodes.Ldloca, 0))
                     .Advance(3)
-                    .RemoveInstructions(4)
+                    .RemoveInstructions(3)
                     .InsertAndAdvance(new CodeInstruction(OpCodes.Ldarg_0))
-                    .InsertAndAdvance(new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(HarmonyTranspilers), nameof(RemoveFuelFromChest))))
+                    .InsertAndAdvance(Transpilers.EmitDelegate<Func<Inventory, ItemDrop.ItemData, Fireplace, bool>>(RemoveFuelFromChest))
+                    //.InsertAndAdvance(new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(HarmonyTranspilers), nameof(RemoveFuelFromChest))))
                     .InstructionEnumeration();
             }
 
@@ -379,7 +381,7 @@ namespace CFC
             i += fromInventory;
             return i;
         }
-        private static bool RemoveFuelFromChest(ref Inventory inventory, ItemDrop.ItemData itemData, Fireplace fireplace)
+        private static bool RemoveFuelFromChest(Inventory inventory, ItemDrop.ItemData itemData, Fireplace fireplace)
         {
             if (inventory.HaveItem(itemData.m_shared.m_name)) return true;
             foreach (var c in Patches.ContainerAwakePatch.Continers)

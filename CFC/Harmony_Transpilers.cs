@@ -194,7 +194,7 @@ namespace CFC
                         new CodeMatch(OpCodes.Ldarg_0)
                     )
                     .Advance(3)
-                    .RemoveInstructions(5)
+                    .RemoveInstructions(6)
                     .InsertAndAdvance(Transpilers.EmitDelegate<Func<Inventory, CookingStation,bool>>(CookingStationAddFuelHook))
                     .InstructionEnumeration();
             }
@@ -241,7 +241,7 @@ namespace CFC
                         new CodeMatch(OpCodes.Ldarg_2),
                         new CodeMatch(OpCodes.Callvirt, AccessTools.Method(typeof(Humanoid),nameof(Humanoid.GetInventory))))
                     .Advance(3)
-                    .RemoveInstructions(5)
+                    .RemoveInstructions(6)
                     .InsertAndAdvance(Transpilers.EmitDelegate<Func<Inventory,Smelter, bool>>(SmelterAddFuel))
                     .InstructionEnumeration();
                 return cm;
@@ -311,7 +311,7 @@ namespace CFC
                         new CodeMatch(OpCodes.Ldloc_0)
                     )
                     .Advance(1)
-                    .RemoveInstructions(14)
+                    .RemoveInstructions(16)
                     .InsertAndAdvance(new CodeInstruction(OpCodes.Ldarg_0))
                     .InsertAndAdvance(new CodeInstruction(OpCodes.Ldarg_2))
                     .InsertAndAdvance(new CodeInstruction(OpCodes.Ldarg_1))

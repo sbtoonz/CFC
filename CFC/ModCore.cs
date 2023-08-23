@@ -62,14 +62,14 @@ namespace CFC
             harmony.PatchAll(typeof(HarmonyTranspilers.HaveReqsTranspiler));
             harmony.PatchAll(typeof(HarmonyTranspilers.ConsumeResourcesTranspiler));
             harmony.PatchAll(typeof(HarmonyTranspilers.FirePlaceFuelTranspiler));
-            harmony.PatchAll(typeof(HarmonyTranspilers.FirePlaceInteractFuelTranspiler));
-            //harmony.PatchAll(typeof(HarmonyTranspilers.CookingOnAddFuelTranspiler));
-            //harmony.PatchAll(typeof(HarmonyTranspilers.CookingInteractTranspiler));
-            //harmony.PatchAll(typeof(HarmonyTranspilers.FermenterInteractTranspiler));
-            //harmony.PatchAll(typeof(HarmonyTranspilers.SmelterAutoDepositTranspiler));
-            //harmony.PatchAll(typeof(HarmonyTranspilers.UpdateSmelterTranspiler));
-            //harmony.PatchAll(typeof(HarmonyTranspilers.OnSmeltFuelTranspiler));
-            //harmony.PatchAll(typeof(HarmonyTranspilers.OnSmeltAddOreTranspiler));
+            //harmony.PatchAll(typeof(HarmonyTranspilers.FirePlaceInteractFuelTranspiler));
+            harmony.PatchAll(typeof(HarmonyTranspilers.CookingOnAddFuelTranspiler));
+            harmony.PatchAll(typeof(HarmonyTranspilers.CookingInteractTranspiler));
+            harmony.PatchAll(typeof(HarmonyTranspilers.FermenterInteractTranspiler));
+            harmony.PatchAll(typeof(HarmonyTranspilers.SmelterAutoDepositTranspiler));
+            harmony.PatchAll(typeof(HarmonyTranspilers.UpdateSmelterTranspiler));
+            harmony.PatchAll(typeof(HarmonyTranspilers.OnSmeltFuelTranspiler));
+            harmony.PatchAll(typeof(HarmonyTranspilers.OnSmeltAddOreTranspiler));
             ServerConfigLocked = config("1 - General", "Lock Configuration", true, "If on, the configuration is locked and can be changed by server admins only.");
             ChestDistance = config("2 - CraftFromChest", "Distance To Check", 15,
                 new ConfigDescription("This is how far to check chests away from players no clue why bep displays this as % its in meters",

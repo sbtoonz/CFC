@@ -11,10 +11,11 @@ namespace CFC
     [BepInDependency("randyknapp.mods.epicloot", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("vapok.mods.adventurebackpacks", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("com.zarboz.drawers", BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency("mkz.itemdrawers", BepInDependency.DependencyFlags.SoftDependency)]
     public class CFCMod : BaseUnityPlugin
     {
         internal const string ModName = "CFCMod";
-        internal const string ModVersion = "1.1.4";
+        internal const string ModVersion = "1.1.5";
         private const string ModGUID = "CFCMod";
         private static Harmony harmony = null!;
 
@@ -48,6 +49,7 @@ namespace CFC
         internal static ConfigEntry<bool>? AutoDeposit = null!;
 
         internal static bool hasItemDrawerRemake = false;
+        internal static bool hasItemDrawersOrig = false;
         internal static bool hasEpicLoot = false;
         public void Awake()
         {
@@ -109,6 +111,7 @@ namespace CFC
             {
                 if (kp.Key == "com.zarboz.drawers") hasItemDrawerRemake = true;
                 if (kp.Key == "randyknapp.mods.epicloot") hasEpicLoot = true;
+                //if (kp.Key == "mkz.itemdrawers") hasItemDrawersOrig = true;
             }
 
             if (hasItemDrawerRemake)
@@ -118,6 +121,15 @@ namespace CFC
                 harmony.PatchAll(typeof(ItemDrawer_Patches.DrawerAwakePatch));
                 harmony.PatchAll(typeof(ItemDrawer_Patches.DrawerHoverTextPatch));
             }
+
+            /*if (hasItemDrawersOrig)
+            {
+                if(hasItemDrawerRemake)return;
+                harmony.PatchAll(typeof(ItemDrawer_Patches.DrawerAwakePatch));
+                harmony.PatchAll(typeof(ItemDrawer_Patches.DrawerDestroyPatch));
+                harmony.PatchAll(typeof(ItemDrawer_Patches.DrawerInteractPatch));
+                harmony.PatchAll(typeof(ItemDrawer_Patches.DrawerHoverTextPatch));
+            }*/
 
             if (hasEpicLoot)
             {

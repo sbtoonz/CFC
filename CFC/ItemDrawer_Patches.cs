@@ -1,6 +1,5 @@
 ﻿using HarmonyLib;
 using UnityEngine;
-
 namespace CFC
 {
     public class ItemDrawer_Patches
@@ -22,6 +21,7 @@ namespace CFC
                 }
             }
         }
+        
 
         [HarmonyPatch(typeof(DrawerContainer), nameof(DrawerContainer.OnDestroyed))]
         public static class DrawerDestroyPatch

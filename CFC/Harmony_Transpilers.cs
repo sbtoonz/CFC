@@ -30,11 +30,10 @@ namespace CFC
                 return new CodeMatcher(instructions)
                     .MatchForward(useEnd: false,
                         new CodeMatch(OpCodes.Ldarg_2),
-                        new CodeMatch(OpCodes.Callvirt, AccessTools.Method(typeof(Humanoid), nameof(Humanoid.GetInventory))),
-                        new CodeMatch(OpCodes.Ldarg_1),
-                        new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(Piece.Requirement), nameof(Piece.Requirement.m_resItem))),
-                        new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(ItemDrop), nameof(ItemDrop.m_itemData))))
-                    .Advance(9)
+                        new CodeMatch(OpCodes.Callvirt, AccessTools.Method(typeof(Humanoid), nameof(Humanoid.GetInventory))))
+                    .MatchForward(useEnd: false,
+                        new CodeMatch(OpCodes.Callvirt, AccessTools.Method(typeof(Inventory), nameof(Inventory.CountItems), new[] { typeof(string), typeof(int), typeof(bool) })))
+                    .Advance(1)
                     .InsertAndAdvance(new CodeInstruction(OpCodes.Ldarg_1))
                     .InsertAndAdvance(new CodeInstruction(OpCodes.Ldarg_2))
                     .InsertAndAdvance(Transpilers.EmitDelegate<Func<int, Piece.Requirement, Player, int>>(CheckChestList))
@@ -43,7 +42,7 @@ namespace CFC
 
         }
         
-        [HarmonyPatch(typeof(Player), nameof(Player.HaveRequirementItems), typeof(Recipe), typeof(bool), typeof(int))]
+        [HarmonyPatch(typeof(Player), nameof(Player.HaveRequirementItems), typeof(Recipe), typeof(bool), typeof(int), typeof(int))]
         [HarmonyPriority(Priority.VeryHigh)]
         [HarmonyWrapSafe]
         public static class RequirementItemsTranspiler
@@ -54,12 +53,10 @@ namespace CFC
                 return new CodeMatcher(instructions)
                     .MatchForward(useEnd: false,
                         new CodeMatch(OpCodes.Ldarg_0),
-                        new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(Humanoid), nameof(Humanoid.m_inventory))),
-                        new CodeMatch(OpCodes.Ldloc_2),
-                        new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(Piece.Requirement), nameof(Piece.Requirement.m_resItem))),
-                        new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(ItemDrop), nameof(ItemDrop.m_itemData)))
-                    )
-                    .Advance(9) 
+                        new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(Humanoid), nameof(Humanoid.m_inventory))))
+                    .MatchForward(useEnd: false,
+                        new CodeMatch(OpCodes.Callvirt, AccessTools.Method(typeof(Inventory), nameof(Inventory.CountItems), new[] { typeof(string), typeof(int), typeof(bool) })))
+                    .Advance(1)
                     .InsertAndAdvance(new CodeInstruction(OpCodes.Ldloc_2))
                     .InsertAndAdvance(new CodeInstruction(OpCodes.Ldarg_0))
                     .InsertAndAdvance(Transpilers.EmitDelegate<Func<int,Piece.Requirement, Player, int>>(CheckChestList))
@@ -77,7 +74,7 @@ namespace CFC
             {
                 return new CodeMatcher(instructions).MatchForward(useEnd: false,
                         new CodeMatch(OpCodes.Callvirt,
-                            AccessTools.Method(typeof(Inventory), nameof(Inventory.CountItems))))
+                            AccessTools.Method(typeof(Inventory), nameof(Inventory.CountItems), new[] { typeof(string), typeof(int), typeof(bool) })))
                     .Advance(1)
                     .InsertAndAdvance(new CodeInstruction(OpCodes.Ldloc_2))
                     .InsertAndAdvance(new CodeInstruction(OpCodes.Ldarg_0))
@@ -119,11 +116,15 @@ namespace CFC
             [HarmonyTranspiler]
             public static IEnumerable<CodeInstruction> FireUpdateFuel(IEnumerable<CodeInstruction> instructions)
             {
+                // Insert FuelFromChest(this) call after: float num = m_nview.GetZDO().GetFloat(ZDOVars.s_fuel, 0f);
+                // Match the GetFloat call, advance past it and the stloc, then insert
                 return new CodeMatcher(instructions)
                     .MatchForward(useEnd: false,
                         new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(Fireplace), nameof(Fireplace.m_nview))),
                         new CodeMatch(OpCodes.Callvirt, AccessTools.Method(typeof(ZNetView), nameof(ZNetView.GetZDO))))
-                    .Advance(4)
+                    .MatchForward(useEnd: false,
+                        new CodeMatch(OpCodes.Callvirt, AccessTools.Method(typeof(ZDO), nameof(ZDO.GetFloat), new[] { typeof(int), typeof(float) })))
+                    .Advance(2)
                     .InsertAndAdvance(new CodeInstruction(OpCodes.Ldarg_0))
                     .InsertAndAdvance(new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(HarmonyTranspilers), nameof(FuelFromChest))))
                     .InstructionEnumeration();
@@ -138,25 +139,85 @@ namespace CFC
             [HarmonyTranspiler]
             public static IEnumerable<CodeInstruction> FireInteractFuel(IEnumerable<CodeInstruction> instructions)
             {
-                return new CodeMatcher(instructions)
-                    .MatchForward(useEnd: false,
-                        new CodeMatch(OpCodes.Ldloc_0),
-                        new CodeMatch(OpCodes.Ldarg_0),
-                        new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(Fireplace), nameof(Fireplace.m_fuelItem))))
-                    .Advance(1)
-                    .RemoveInstructions(6)
-                    .MatchForward(
-                        useEnd: false,
-                        new CodeMatch(OpCodes.Callvirt, AccessTools.Method(typeof(Inventory), nameof(Inventory.HaveItem))))
-                    .RemoveInstruction()
-                    .InsertAndAdvance(
-                        new CodeInstruction(OpCodes.Callvirt, AccessTools.Method(typeof(Player), nameof(Player.GetInventory))),
-                        new CodeInstruction(OpCodes.Stloc,0),
-                        new CodeInstruction(OpCodes.Ldloca, 0),
-                        new CodeInstruction(OpCodes.Ldarg_0),
-                        new CodeInstruction(
-                            OpCodes.Callvirt, AccessTools.Method(typeof(HarmonyTranspilers), nameof(RemoveFuelFromChest))))
-                    .InstructionEnumeration();
+                // Replace: inventory.HaveItem(m_fuelItem.m_itemData.m_shared.m_name, true)
+                // With:    RemoveFuelFromChest(ref inventory, fireplace)
+                //
+                // IL Pattern to find (line 385):
+                // ldloc.N          // load inventory
+                // ldarg.0          // load this (Fireplace)
+                // ldfld m_fuelItem
+                // callvirt get_m_itemData
+                // ldfld m_shared
+                // ldfld m_name
+                // ldc.i4.1         // true for matchWorldLevel
+                // callvirt HaveItem
+
+                var codes = new List<CodeInstruction>(instructions);
+                var haveItemMethod = AccessTools.Method(typeof(Inventory), nameof(Inventory.HaveItem), new[] { typeof(string), typeof(bool) });
+                var fuelItemField = AccessTools.Field(typeof(Fireplace), nameof(Fireplace.m_fuelItem));
+                var removeFuelMethod = AccessTools.Method(typeof(HarmonyTranspilers), nameof(RemoveFuelFromChest));
+
+                for (int i = 0; i < codes.Count; i++)
+                {
+                    if (codes[i].Calls(haveItemMethod))
+                    {
+                        // Walk backwards to find ldfld m_fuelItem
+                        int fuelIdx = -1;
+                        for (int j = i - 1; j >= 0 && j >= i - 10; j--)
+                        {
+                            if (codes[j].LoadsField(fuelItemField))
+                            {
+                                fuelIdx = j;
+                                break;
+                            }
+                        }
+                        if (fuelIdx == -1) continue;
+
+                        // The pattern is: ldloc.N, ldarg.0, ldfld m_fuelItem
+                        // So ldloc is 2 instructions before ldfld m_fuelItem
+                        int startIdx = fuelIdx - 2;
+                        if (startIdx < 0) continue;
+
+                        // Verify this is the right pattern: check for ldarg.0 at fuelIdx-1
+                        if (codes[fuelIdx - 1].opcode != OpCodes.Ldarg_0) continue;
+
+                        // Capture which local holds inventory
+                        var ldlocInstr = codes[startIdx];
+                        if (!ldlocInstr.IsLdloc()) continue;
+
+                        // Extract the local index/operand from the ldloc instruction
+                        object localOperand;
+                        if (ldlocInstr.opcode == OpCodes.Ldloc_0) localOperand = (byte)0;
+                        else if (ldlocInstr.opcode == OpCodes.Ldloc_1) localOperand = (byte)1;
+                        else if (ldlocInstr.opcode == OpCodes.Ldloc_2) localOperand = (byte)2;
+                        else if (ldlocInstr.opcode == OpCodes.Ldloc_3) localOperand = (byte)3;
+                        else if (ldlocInstr.opcode == OpCodes.Ldloc_S || ldlocInstr.opcode == OpCodes.Ldloc)
+                            localOperand = ldlocInstr.operand;
+                        else continue; // Not a valid ldloc
+
+                        // Preserve labels from the first instruction being removed
+                        var preservedLabels = new List<Label>(codes[startIdx].labels);
+
+                        // Remove from startIdx (ldloc inventory) through HaveItem call (inclusive)
+                        int removeCount = i - startIdx + 1;
+                        codes.RemoveRange(startIdx, removeCount);
+
+                        // Insert replacement: ldloca.s N, ldarg.0, call RemoveFuelFromChest
+                        var replacementInstructions = new[]
+                        {
+                            new CodeInstruction(OpCodes.Ldloca_S, localOperand),
+                            new CodeInstruction(OpCodes.Ldarg_0),
+                            new CodeInstruction(OpCodes.Call, removeFuelMethod)
+                        };
+
+                        // Attach preserved labels to the first replacement instruction
+                        replacementInstructions[0].labels.AddRange(preservedLabels);
+
+                        codes.InsertRange(startIdx, replacementInstructions);
+                        break;
+                    }
+                }
+                return codes;
             }
         }
 
@@ -285,19 +346,26 @@ namespace CFC
             [HarmonyTranspiler]
             public static IEnumerable<CodeInstruction> SmelterUpdate(IEnumerable<CodeInstruction> instructions)
             {
-                return new CodeMatcher(instructions)
+                // First replacement: GetQueuedOre() == "" → AutoFeedSmelter(smelter)
+                // Match: ldarg.0, call GetQueuedOre, ldstr "", call op_Equality
+                // Replace the 3 after ldarg.0 with our delegate
+                var cm = new CodeMatcher(instructions)
                     .MatchForward(useEnd: false,
                         new CodeMatch(OpCodes.Ldarg_0),
                         new CodeMatch(OpCodes.Call, AccessTools.Method(typeof(Smelter), nameof(Smelter.GetQueuedOre))),
-                        new CodeMatch(OpCodes.Ldstr)
-                    )
+                        new CodeMatch(OpCodes.Ldstr))
                     .Advance(1)
                     .RemoveInstructions(3)
-                    .InsertAndAdvance(Transpilers.EmitDelegate<Func<Smelter, bool>>(AutoFeedSmelter))
-                    .Advance(7)
+                    .InsertAndAdvance(Transpilers.EmitDelegate<Func<Smelter, bool>>(AutoFeedSmelter));
+
+                // Second replacement: GetFuel() → AutoFuelSmelter(smelter)
+                // Find the next GetFuel call after our current position
+                cm.MatchForward(useEnd: false,
+                        new CodeMatch(OpCodes.Call, AccessTools.Method(typeof(Smelter), nameof(Smelter.GetFuel))))
                     .RemoveInstruction()
-                    .InsertAndAdvance(Transpilers.EmitDelegate<Func<Smelter, float>>(AutoFuelSmelter))
-                    .InstructionEnumeration();
+                    .InsertAndAdvance(Transpilers.EmitDelegate<Func<Smelter, float>>(AutoFuelSmelter));
+
+                return cm.InstructionEnumeration();
             }
         }
 
@@ -310,21 +378,52 @@ namespace CFC
             [HarmonyTranspiler]
             public static IEnumerable<CodeInstruction> SmelterDeposit(IEnumerable<CodeInstruction> instructions)
             {
-                return new CodeMatcher(instructions)
-                    .MatchForward(useEnd: false,
-                        new CodeMatch(OpCodes.Pop),
-                        new CodeMatch(OpCodes.Ldloc_0)
-                    )
-                    .Advance(1)
-                    .RemoveInstructions(16)
-                    .InsertAndAdvance(new CodeInstruction(OpCodes.Ldarg_0))
-                    .InsertAndAdvance(new CodeInstruction(OpCodes.Ldarg_2))
-                    .InsertAndAdvance(new CodeInstruction(OpCodes.Ldarg_1))
-                    .InsertAndAdvance(new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(HarmonyTranspilers), nameof(SmelterDepositHook))))
-                    .InstructionEnumeration();
+                var codes = new List<CodeInstruction>(instructions);
+
+                // Find the Pop instruction that discards the Create() return value
+                // Then replace everything from Ldloc_0 up to and including OnCreateNew with our hook
+                int popIdx = -1;
+                for (int i = 0; i < codes.Count; i++)
+                {
+                    if (codes[i].opcode == OpCodes.Pop && i + 1 < codes.Count && codes[i + 1].IsLdloc())
+                    {
+                        popIdx = i;
+                        break;
+                    }
+                }
+
+                if (popIdx == -1) return codes;
+
+                // Find the end: look for the closing brace / ret after the block
+                // The method ends with just a } after OnCreateNew, so find the ret
+                int endIdx = codes.Count - 1;
+                for (int i = popIdx + 1; i < codes.Count; i++)
+                {
+                    if (codes[i].opcode == OpCodes.Ret)
+                    {
+                        endIdx = i;
+                        break;
+                    }
+                }
+
+                // Remove from popIdx+1 to endIdx-1 (keep the Pop and Ret)
+                int removeStart = popIdx + 1;
+                int removeCount = endIdx - removeStart;
+                codes.RemoveRange(removeStart, removeCount);
+
+                // Insert our hook call before the Ret
+                codes.InsertRange(removeStart, new[]
+                {
+                    new CodeInstruction(OpCodes.Ldarg_0),  // smelter
+                    new CodeInstruction(OpCodes.Ldarg_2),  // stack
+                    new CodeInstruction(OpCodes.Ldarg_1),  // ore
+                    new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(HarmonyTranspilers), nameof(SmelterDepositHook)))
+                });
+
+                return codes;
             }
 
-           
+
         }
 
         #endregion

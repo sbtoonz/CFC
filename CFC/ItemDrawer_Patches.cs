@@ -1,4 +1,5 @@
-﻿using HarmonyLib;
+﻿#if ITEMDRAWERS
+using HarmonyLib;
 using UnityEngine;
 namespace CFC
 {
@@ -63,3 +64,4 @@ namespace CFC
         }
     }
 }
+#endif

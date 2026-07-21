@@ -114,6 +114,7 @@ namespace CFC
                 //if (kp.Key == "mkz.itemdrawers") hasItemDrawersOrig = true;
             }
 
+#if ITEMDRAWERS
             if (hasItemDrawerRemake)
             {
                 harmony.PatchAll(typeof(ItemDrawer_Patches.DrawerDestroyPatch));
@@ -121,6 +122,7 @@ namespace CFC
                 harmony.PatchAll(typeof(ItemDrawer_Patches.DrawerAwakePatch));
                 harmony.PatchAll(typeof(ItemDrawer_Patches.DrawerHoverTextPatch));
             }
+#endif
 
             /*if (hasItemDrawersOrig)
             {

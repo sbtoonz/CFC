@@ -27,17 +27,103 @@ namespace CFC
             [HarmonyTranspiler]
             public static IEnumerable<CodeInstruction> SetupRequirementsTranspiler(IEnumerable<CodeInstruction> instructions)
             {
-                return new CodeMatcher(instructions)
+                var codes = new List<CodeInstruction>(instructions);
+                var getInventoryMethod = AccessTools.Method(typeof(Humanoid), nameof(Humanoid.GetInventory));
+                var countItemsMethod = AccessTools.Method(typeof(Inventory), nameof(Inventory.CountItems), new[] { typeof(string), typeof(int), typeof(bool) });
+                var toStringMethod = AccessTools.Method(typeof(int), nameof(int.ToString), Type.EmptyTypes);
+
+                // First: Add chest items to the count
+                var cm = new CodeMatcher(codes)
                     .MatchForward(useEnd: false,
                         new CodeMatch(OpCodes.Ldarg_2),
-                        new CodeMatch(OpCodes.Callvirt, AccessTools.Method(typeof(Humanoid), nameof(Humanoid.GetInventory))))
+                        new CodeMatch(OpCodes.Callvirt, getInventoryMethod))
                     .MatchForward(useEnd: false,
-                        new CodeMatch(OpCodes.Callvirt, AccessTools.Method(typeof(Inventory), nameof(Inventory.CountItems), new[] { typeof(string), typeof(int), typeof(bool) })))
-                    .Advance(1)
-                    .InsertAndAdvance(new CodeInstruction(OpCodes.Ldarg_1))
+                        new CodeMatch(OpCodes.Callvirt, countItemsMethod))
+                    .Advance(1);
+
+                int countInsertPos = cm.Pos;
+                cm.InsertAndAdvance(new CodeInstruction(OpCodes.Ldarg_1))
                     .InsertAndAdvance(new CodeInstruction(OpCodes.Ldarg_2))
-                    .InsertAndAdvance(Transpilers.EmitDelegate<Func<int, Piece.Requirement, Player, int>>(CheckChestList))
-                    .InstructionEnumeration();
+                    .InsertAndAdvance(Transpilers.EmitDelegate<Func<int, Piece.Requirement, Player, int>>(CheckChestList));
+
+                // Refresh codes list after insertion
+                codes = cm.InstructionEnumeration().ToList();
+
+                // Second: Find the text assignment and modify it to show "required/total"
+                // Looking for: component3.text = num2.ToString()
+                // IL: ldloc component3, ldloca num2, call ToString, callvirt set_text
+
+                for (int i = 0; i < codes.Count - 3; i++)
+                {
+                    // Find ToString() followed by set_text on a TMP_Text
+                    if (codes[i + 1].Calls(toStringMethod) &&
+                        codes[i + 2].opcode == OpCodes.Callvirt &&
+                        codes[i + 2].operand != null &&
+                        codes[i + 2].operand.ToString().Contains("set_text"))
+                    {
+                        // Verify this is the right location by checking we're loading from num2 (ldloca)
+                        if (codes[i].opcode == OpCodes.Ldloca_S || codes[i].opcode == OpCodes.Ldloca)
+                        {
+                            // codes[i-1] loads component3 (TMP_Text)
+                            // codes[i] loads address of num2 (required amount)
+                            // codes[i+1] calls ToString()
+                            // codes[i+2] calls set_text
+
+                            // We need to:
+                            // 1. Change ldloca to ldloc (get value not address)
+                            // 2. Add ldloc for num (total available)
+                            // 3. Replace ToString with our FormatRequirementText delegate
+
+                            // Get the local variable index from ldloca
+                            var num2Local = codes[i].operand;
+
+                            // Find the 'num' local (should be stored right after CountItems + our additions)
+                            // Trace back to find where num is stored (stloc after CountItems)
+                            int numLocal = -1;
+                            for (int j = countInsertPos; j < i && j < countInsertPos + 20; j++)
+                            {
+                                if (codes[j].IsStloc())
+                                {
+                                    numLocal = j;
+                                    break;
+                                }
+                            }
+
+                            if (numLocal != -1)
+                            {
+                                var numLocalOperand = codes[numLocal].operand;
+
+                                // Preserve labels from ldloca
+                                var preservedLabels = new List<Label>(codes[i].labels);
+
+                                // Replace ldloca with ldloc (get value instead of address)
+                                if (codes[i].opcode == OpCodes.Ldloca_S)
+                                    codes[i] = new CodeInstruction(OpCodes.Ldloc_S, num2Local);
+                                else
+                                    codes[i] = new CodeInstruction(OpCodes.Ldloc, num2Local);
+                                codes[i].labels.AddRange(preservedLabels);
+
+                                // Remove ToString call and insert our formatting logic
+                                codes.RemoveAt(i + 1);
+
+                                // Insert: ldloc num, call FormatRequirementText
+                                CodeInstruction loadNumInstruction;
+                                if (numLocalOperand is byte b)
+                                    loadNumInstruction = new CodeInstruction(OpCodes.Ldloc_S, b);
+                                else
+                                    loadNumInstruction = new CodeInstruction(OpCodes.Ldloc, numLocalOperand);
+
+                                codes.Insert(i + 1, loadNumInstruction);
+                                codes.Insert(i + 2, new CodeInstruction(OpCodes.Call,
+                                    AccessTools.Method(typeof(HarmonyTranspilers), nameof(FormatRequirementText))));
+
+                                break; // Only modify the first occurrence
+                            }
+                        }
+                    }
+                }
+
+                return codes;
             }
 
         }
@@ -430,6 +516,13 @@ namespace CFC
 
         #endregion
         #region Transpiler Methods
+
+        private static string FormatRequirementText(int required, int totalAvailable)
+        {
+            // Show "required/total" format like other craft-from-chest mods
+            return $"{required}/{totalAvailable}";
+        }
+
         private static void RemoveItemsFromChests(Player? player, Piece.Requirement item, int amount, int itemQuality)
         {
             if(player is not null && player.NoCostCheat()) return;
@@ -897,7 +990,7 @@ namespace CFC
             _elapsedTime2 += Time.deltaTime;
             var q = smelter.GetQueueSize();
             if(q >= smelter.m_maxOre)return smelter.GetQueuedOre() == "";
-            if(q <= CFCMod.LowSmelterOreValue!.Value)return smelter.GetQueuedOre() == "";
+            if(q > CFCMod.LowSmelterOreValue!.Value)return smelter.GetQueuedOre() == ""; // Only auto-feed when queue is LOW
             if(_elapsedTime2 <= CFCMod.SearchInterval!.Value)return smelter.GetQueuedOre() == "";
             foreach (var container in Patches.ContainerAwakePatch.Continers)
             {
@@ -1007,9 +1100,10 @@ namespace CFC
         {
             int toAdd = smelter.m_maxFuel - Mathf.CeilToInt(smelter.GetFuel());
 
-            if (smelter.GetFuel() <= CFCMod.LowSmelterFuelValue!.Value) return smelter.GetFuel();
-            
-            if (smelter.GetFuel() > CFCMod.LowSmelterFuelValue!.Value || smelter.GetFuel() == 0)
+            // Only auto-fuel when fuel is low (at or below threshold)
+            if (smelter.GetFuel() > CFCMod.LowSmelterFuelValue!.Value) return smelter.GetFuel();
+
+            if (toAdd > 0)
             {
                 foreach (var container in Patches.ContainerAwakePatch.Continers)
                 {
@@ -1152,7 +1246,7 @@ namespace CFC
                             {
                                 c.m_inventory.AddItem(itemC.m_to.gameObject, stack);
                                 spawnedItemFromSwitch = true;
-                                break;
+                                goto exitLoop; // Exit the foreach after successful deposit
                             }
                             Object
                                 .Instantiate(itemC.m_to.gameObject, smelter.m_outputPoint.position,
@@ -1169,7 +1263,7 @@ namespace CFC
                             {
                                 c.m_inventory.AddItem(itemC.m_to.gameObject, stack);
                                 spawnedItemFromSwitch = true;
-                                break;
+                                goto exitLoop;
                             }
                             Object
                                 .Instantiate(itemC.m_to.gameObject, smelter.m_outputPoint.position,
@@ -1186,7 +1280,7 @@ namespace CFC
                             {
                                 c.m_inventory.AddItem(itemC.m_to.gameObject, stack);
                                 spawnedItemFromSwitch = true;
-                                break;
+                                goto exitLoop;
                             }
                             Object
                                 .Instantiate(itemC.m_to.gameObject, smelter.m_outputPoint.position,
@@ -1203,7 +1297,7 @@ namespace CFC
                             {
                                 c.m_inventory.AddItem(itemC.m_to.gameObject, stack);
                                 spawnedItemFromSwitch = true;
-                                break;
+                                goto exitLoop;
                             }
                             spawnedItemFromSwitch = true;
                             Object
@@ -1220,7 +1314,7 @@ namespace CFC
                             {
                                 c.m_inventory.AddItem(itemC.m_to.gameObject, stack);
                                 spawnedItemFromSwitch = true;
-                                break;
+                                goto exitLoop;
                             }
                             spawnedItemFromSwitch = true;
                             Object
@@ -1237,13 +1331,13 @@ namespace CFC
                             {
                                 c.m_inventory.AddItem(itemC.m_to.gameObject, stack);
                                 spawnedItemFromSwitch = true;
-                                break;
+                                goto exitLoop;
                             }
                             spawnedItemFromSwitch = true;
                             Object
                                 .Instantiate(itemC.m_to.gameObject, smelter.m_outputPoint.position,
                                     smelter.m_outputPoint.rotation).GetComponent<ItemDrop>().m_itemData.m_stack = stack;
-                            
+
                         }
                         break;
                     case "eitrrefinery(Clone)":
@@ -1255,13 +1349,13 @@ namespace CFC
                             {
                                 c.m_inventory.AddItem(itemC.m_to.gameObject, stack);
                                 spawnedItemFromSwitch = true;
-                                break;
+                                goto exitLoop;
                             }
                             spawnedItemFromSwitch = true;
                             Object
                                 .Instantiate(itemC.m_to.gameObject, smelter.m_outputPoint.position,
                                     smelter.m_outputPoint.rotation).GetComponent<ItemDrop>().m_itemData.m_stack = stack;
-                            
+
                         }
                         break;
                     case "JF_KilnReimagined(Clone)":
@@ -1273,7 +1367,7 @@ namespace CFC
                             {
                                 c.m_inventory.AddItem(itemC.m_to.gameObject, stack);
                                 spawnedItemFromSwitch = true;
-                                break;
+                                goto exitLoop;
                             }
                             spawnedItemFromSwitch = true;
                             Object
@@ -1291,7 +1385,7 @@ namespace CFC
                             {
                                 c.m_inventory.AddItem(itemC.m_to.gameObject, stack);
                                 spawnedItemFromSwitch = true;
-                                break;
+                                goto exitLoop;
                             }
                         }
                         var o = Object
@@ -1300,12 +1394,13 @@ namespace CFC
                         spawnedItemFromSwitch = true;
                         break;
                 }
-            } 
+            }
+            exitLoop: // Label for breaking out of foreach loop
             var itemCd = smelter.GetItemConversion(ore);
             if(!spawnedItemFromSwitch)Object
                 .Instantiate(itemCd.m_to.gameObject, smelter.m_outputPoint.position,
                     smelter.m_outputPoint.rotation).GetComponent<ItemDrop>().m_itemData.m_stack = stack;
-            
+
         }
 
         #endregion
